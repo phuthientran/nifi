@@ -12,6 +12,16 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+
+## Zapata Technology Instructions
+Run in Docker
+````
+docker run --name nifi \
+  -p 8080:8080 \
+  -d \
+  apache/nifi:latest
+````
+
 [<img src="https://nifi.apache.org/assets/images/apache-nifi-logo.svg" width="300" height="126" alt="Apache NiFi"/>][nifi]
 
 [![ci-workflow](https://github.com/apache/nifi/workflows/ci-workflow/badge.svg)](https://github.com/apache/nifi/actions)
