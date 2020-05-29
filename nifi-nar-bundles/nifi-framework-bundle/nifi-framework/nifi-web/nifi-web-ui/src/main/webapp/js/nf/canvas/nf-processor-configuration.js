@@ -978,8 +978,7 @@
                             });
                         }
                         // Add start button to the statusbar
-                        if(nfCommon.isDefinedAndNotNull(config.nfActions))
-                        {                            
+                        if (nfCommon.isDefinedAndNotNull(config.nfActions)) {                            
                             processorBtns.push({
                                 buttonText: 'Start',
                                 clazz: 'fa fa-play button-icon',
@@ -994,7 +993,7 @@
                                 handler: {
                                     click: function() {
                                       $("#processor-configuration-status-bar").statusbar('hideButtons');
-                                      config.nfActions.start(selection, function(){
+                                      config.nfActions.start(selection, function() {
                                         config.nfActions.showDetails(selection);    
                                       });                                      
                                     }

@@ -697,11 +697,11 @@
                         $.when.apply(window, startRequests).always(function () {
                             nfNgBridge.digest();
 
-                            if(typeof cb == 'function'){
+                            if (typeof cb == 'function') {
                                 cb();
                             }
                         });
-                    } else if(typeof cb == 'function'){
+                    } else if (typeof cb == 'function') {
                         cb();
                     }
                 }
@@ -823,20 +823,20 @@
          * @param {cb} callback     The function to call when complete
          */
         restart: function (selection,cb) {
-          if(selection.size() === 1 &&
+          if (selection.size() === 1 &&
                 nfCanvasUtils.isProcessor(selection) &&
-                nfCanvasUtils.canModify(selection)){
+                nfCanvasUtils.canModify(selection)) {
 
-                nfActions.stop(selection,function(){
-                  nfActions.terminate(selection, function(){
+                nfActions.stop(selection,function() {
+                  nfActions.terminate(selection, function() {
                     var selectionData = selection.datum();                   
-                    if(selectionData.status.aggregateSnapshot.activeThreadCount > 0){
+                    if (selectionData.status.aggregateSnapshot.activeThreadCount > 0) {
                         nfDialog.showOkDialog({
                             dialogContent: 'Unable to restart, active threads could not be terminated.',
                             headerText: 'Unable to Restart'
                         });
                     }
-                    else{
+                    else {
                         nfActions.start(selection, cb);        
                     }      
                     
