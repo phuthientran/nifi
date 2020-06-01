@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.persistence;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -117,12 +118,13 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         }
 
         try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
-                final InputStream gzipIn = new GZIPInputStream(inStream);
-                final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            // Make sure flow XML is not malformed before writing it out
+                final InputStream gzipIn = new GZIPInputStream(inStream)) {
+            // Make sure flow XML is well-formed before writing it out
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             FileUtils.copy(gzipIn, baos);
             if (isValidXml(baos.toByteArray())) {
-                FileUtils.copy(gzipIn, os);
+                ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+                FileUtils.copy(bais, os);
             }
         } catch (IOException e) {
             // Just ignore the corrupt file. Cluster/FlowController synchronization will
