@@ -25,6 +25,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -88,16 +90,32 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties, extensionManager);
         
+        // Used for formatting current date as part of backed up flow.xml.gz's file name
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        
         // Make sure local flow XML is valid as it'd be loaded for initial cluster synchronization.
         // If it's invalid, rename it to something else to allow cluster synchronization to proceed
         // anyway and NiFi to come up with empty flow instead of dying out due to IOException
         if (!controller.isFlowSynchronized() && !isValidFlowXml()) {
-            String corruptFlowXmlName = flowXmlPath.toFile().getName() + ".corrupt.gz";
-            LOG.warn(flowXmlPath.toFile().getName() + " has malformed XML. Renaming to " + corruptFlowXmlName);
-            Path corruptFlowXmlPath = flowXmlPath.getParent().resolve(corruptFlowXmlName);
-            FileUtils.renameFile(flowXmlPath.toFile(), corruptFlowXmlPath.toFile(), 3);
+            moveFlowXml(dateFormatter.format(LocalDate.now()) + ".malformed.gz", 
+                        "being malformed XML");
         }
-        controller.synchronize(flowSynchronizer, dataFlow);
+        
+        try {
+            controller.synchronize(flowSynchronizer, dataFlow);
+        } catch (UninheritableFlowException e) {
+            // For this error, the node can't be synchronized because its flow.xml.gz is in
+            // conflict with cluster flow. Instead of requiring manual removal of the file and 
+            // restarting NiFi, we just move the file out of the way as if the node has a blank
+            // flow to allow it to use the cluster flow.
+            boolean moved = moveFlowXml(dateFormatter.format(LocalDate.now()) + ".uninherited.gz", 
+                                        "cluster flow is uninheritable by local flow");
+            if (!moved) {
+                LOG.error("Failed to rename uninherited flow.xml.gz. Please remove or move it manually " +
+                          "and restart NiFi for this node to be synchronized with the cluster.");
+                return;
+            }
+        }
 
         if (StandardFlowSynchronizer.isEmpty(dataFlow)) {
             // If the dataflow is empty, we want to save it. We do this because when we start up a brand new cluster with no
@@ -214,6 +232,10 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         }
     }
     
+    /**
+     * Checks if the local flow is a valid XML.
+     * @return
+     */
     private boolean isValidFlowXml() {
         boolean valid = false;
         try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
@@ -226,5 +248,27 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
                     " is corrupt or has malformed XML: " + e.toString());
         }
         return valid;
+    }
+    
+    /**
+     * Moves or renames the local flow.xml.gz to the same file name 
+     * but with the specified extension.
+     * @param movedToFileExt
+     * @param reasonMessage
+     * @return
+     */
+    private boolean moveFlowXml(String movedToFileExt, String reasonMessage) {
+        String movedToFlowXmlName = flowXmlPath.toFile().getName() + movedToFileExt;
+        Path movedToFlowXmlPath = flowXmlPath.getParent().resolve(movedToFlowXmlName);
+        try {
+            FileUtils.renameFile(flowXmlPath.toFile(), movedToFlowXmlPath.toFile(), 3);
+            LOG.warn("Moved " + flowXmlPath.toFile().getName() + " to " + movedToFlowXmlName + 
+                     " for " + reasonMessage + ".");
+        } catch (IOException e) {
+            LOG.warn("Unable to move " + flowXmlPath.toFile().getName() + 
+                     " for " + reasonMessage + ": " + e.toString() + ".");
+            return false;
+        }
+        return true;
     }
 }
