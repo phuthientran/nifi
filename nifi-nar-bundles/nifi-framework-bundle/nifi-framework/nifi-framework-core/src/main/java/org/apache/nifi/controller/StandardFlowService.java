@@ -614,7 +614,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
                 return fromDisk;
             } else {
-                logger.warn("Existing DataFlow is not a valid XML. Trying to obtain it from FlowController...");
+                logger.warn("Existing Flow XML is malformed. Trying to obtain it from FlowController...");
             }
         }
 
