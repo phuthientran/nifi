@@ -826,7 +826,7 @@
          * @param {function} setOffset          Optional function to handle the width of the active thread count component
          * @return
          */
-        activeThreadCount: function (selection, d, setOffset) {            v
+        activeThreadCount: function (selection, d, setOffset) {            
         	var activeThreads = d.status.aggregateSnapshot.activeThreadCount;
             var terminatedThreads = d.status.aggregateSnapshot.terminatedThreadCount;
 
