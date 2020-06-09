@@ -666,7 +666,13 @@
                 }
             });
         },
-
+        /**
+         * Hides the configuration dialog 
+         *
+         */
+        hideConfiguration: function () {
+            $('#processor-configuration').modal('hide');
+        },
         /**
          * Shows the configuration dialog for the specified processor.
          *
@@ -929,11 +935,13 @@
                             $('#processor-configuration').modal('refreshButtons');
                         });
 
+
+                        var processorBtns = [];
                         //if there are active threads, add the terminate button to the status bar
                         if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
                             nfCommon.getKeyValue(processorResponse,ACTIVE_THREAD_COUNT_KEY) != 0){
-
-                            $("#processor-configuration-status-bar").statusbar('buttons',[{
+                            
+                            processorBtns.push({
                                 buttonText: 'Terminate',
                                 clazz: 'fa fa-hourglass-end button-icon',
                                 color: {
@@ -957,7 +965,7 @@
                                             else {
                                                 //refresh the dialog
                                                 $('#processor-configuration-status-bar').statusbar('refreshButtons');
-                                                $('#processor-configuration').modal('refreshButtons');
+                                                $('#processor-configuration').modal('refreshButtons');;
                                             }
                                             $('#processor-configuration-status-bar').statusbar('showButtons');
                                         };
@@ -967,11 +975,37 @@
                                         config.nfActions.terminate(selection,cb);
                                     }
                                 }
-                            }]);
+                            });
                         }
+                        // Add start button to the statusbar
+                        if (nfCommon.isDefinedAndNotNull(config.nfActions)) {                            
+                            processorBtns.push({
+                                buttonText: 'Start',
+                                clazz: 'fa fa-play button-icon',
+                                color: {
+                                    hover: '#C7D2D7',
+                                    base: 'transparent',
+                                    text: '#004849'
+                                },
+                                disabled : function() {
+                                    return !nfCanvasUtils.isRunnable(selection);
+                                },
+                                handler: {
+                                    click: function() {
+                                      $("#processor-configuration-status-bar").statusbar('hideButtons');
+                                      config.nfActions.start(selection, function() {
+                                        config.nfActions.showDetails(selection);    
+                                      });                                      
+                                    }
+                                }
+                            });
+                        }
+                        $("#processor-configuration-status-bar").statusbar('buttons',processorBtns);                       
                     }
                     // set the button model
                     $('#processor-configuration').modal('setButtonModel', buttons);
+                    $('#processor-configuration').modal('show');
+                    $("#processor-configuration-status-bar").statusbar('showButtons');
 
                     // load the property table
                     $('#processor-properties')

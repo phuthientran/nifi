@@ -302,6 +302,7 @@
                         click: function () {
                             // hide the dialog
                             $('#processor-details').modal('hide');
+                            config.nfActions.hideConfiguration(selection);
                         }
                     }
                 }];
@@ -351,6 +352,26 @@
                         };
 
                         $("#processor-details-status-bar").statusbar('buttons',[{
+                            buttonHtml: '<i class="fa fa-repeat" aria-hidden="true"></i><span>Restart</span>',
+                            clazz: 'button button-icon auto-width',
+                            color: {
+                                hover: '#C7D2D7',
+                                base: 'transparent',
+                                text: '#004849'
+                            },
+                            disabled : function() {
+                                return !config.nfCanvasUtils.isStoppable(selection);
+                            },
+                            handler: {
+                                click: function() {
+                                    $("#processor-details-status-bar").statusbar('hideButtons');
+                                    config.nfActions.restart(selection,function(){
+                                      $("#processor-details-status-bar").statusbar('showButtons');
+                                    });
+                                }
+                            }
+                        },
+                        {
                             buttonHtml: '<i class="fa fa-stop stop-configure-icon" aria-hidden="true"></i><span>Stop & Configure</span>',
                             clazz: 'button button-icon auto-width',
                             color: {
@@ -368,7 +389,7 @@
                                     config.nfActions.stopAndConfigure(selection,cb);
                                 }
                             }
-                        },
+                        },                      
                         {
                             buttonText: 'Configure',
                             clazz: 'fa fa-cog button-icon',

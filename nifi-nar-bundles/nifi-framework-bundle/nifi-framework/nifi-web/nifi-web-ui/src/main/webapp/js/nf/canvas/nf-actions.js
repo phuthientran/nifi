@@ -645,7 +645,7 @@
          *
          * @argument {selection} selection      The selection
          */
-        start: function (selection) {
+        start: function (selection, cb) {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
@@ -696,7 +696,13 @@
                     if (startRequests.length > 0) {
                         $.when.apply(window, startRequests).always(function () {
                             nfNgBridge.digest();
+
+                            if (typeof cb == 'function') {
+                                cb();
+                            }
                         });
+                    } else if (typeof cb == 'function') {
+                        cb();
                     }
                 }
             }
@@ -811,6 +817,35 @@
         },
 
         /**
+         * Restart the processor
+         *
+         * @param {selection}       selection
+         * @param {cb} callback     The function to call when complete
+         */
+        restart: function (selection,cb) {
+          if (selection.size() === 1 &&
+                nfCanvasUtils.isProcessor(selection) &&
+                nfCanvasUtils.canModify(selection)) {
+
+                nfActions.stop(selection,function() {
+                  nfActions.terminate(selection, function() {
+                    var selectionData = selection.datum();                   
+                    if (selectionData.status.aggregateSnapshot.activeThreadCount > 0) {
+                        nfDialog.showOkDialog({
+                            dialogContent: 'Unable to restart, active threads could not be terminated.',
+                            headerText: 'Unable to Restart'
+                        });
+                    }
+                    else {
+                        nfActions.start(selection, cb);        
+                    }      
+                    
+                  });     
+
+                });
+            }
+        },
+        /**
          * Enables transmission for the components in the specified selection.
          *
          * @argument {selection} selection      The selection
@@ -885,7 +920,16 @@
                 }
             }
         },
-
+        /**
+         * Hides the configuration dialog for the specified selection. 
+         *
+         *  @param {selection} selection     Selection of the component to be configured
+         */
+        hideConfiguration: function (selection) {
+            if (nfCanvasUtils.isProcessor(selection)) {                
+                nfProcessorConfiguration.hideConfiguration(selection);
+            }
+        },
         /**
          * Opens the policy management page for the selected component.
          *
