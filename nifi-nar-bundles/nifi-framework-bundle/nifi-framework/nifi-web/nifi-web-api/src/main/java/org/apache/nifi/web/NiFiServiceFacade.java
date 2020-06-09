@@ -738,6 +738,16 @@ public interface NiFiServiceFacade {
      * @return The DropRequest
      */
     DropRequestDTO createFlowFileDropRequest(String connectionId, String dropRequestId);
+    
+   /**
+    * Creates a new flow file drop request to drop specific flow files.  
+    *
+    * @param connectionId The ID of the connection
+    * @param dropRequestId The ID of the drop request
+    * @param flowFileUuids The uuid of flowfiles to drop
+    * @return The DropRequest
+    */
+   DropRequestDTO createFlowFileDropRequest(String connectionId, String dropRequestId, List<String> flowFileUuids);
 
     /**
      * Gets the specified flow file drop request.

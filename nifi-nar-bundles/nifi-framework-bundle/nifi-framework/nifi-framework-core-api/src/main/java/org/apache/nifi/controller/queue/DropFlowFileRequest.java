@@ -17,6 +17,8 @@
 
 package org.apache.nifi.controller.queue;
 
+import java.util.List;
+
 public class DropFlowFileRequest implements DropFlowFileStatus {
     private final String identifier;
     private final long submissionTime = System.currentTimeMillis();
@@ -26,6 +28,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
     private volatile QueueSize droppedSize = new QueueSize(0, 0L);
     private volatile long lastUpdated = System.currentTimeMillis();
     private volatile String failureReason;
+    private volatile List<String> flowFileUuids;
 
     private DropFlowFileState state = DropFlowFileState.WAITING_FOR_LOCK;
 
@@ -86,7 +89,15 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         return failureReason;
     }
 
-    public synchronized void setState(final DropFlowFileState state) {
+    public List<String> getFlowFileUuids() {
+		return flowFileUuids;
+	}
+
+	public void setFlowFileUuids(final List<String> flowFileUuids) {
+		this.flowFileUuids = flowFileUuids;
+	}
+
+	public synchronized void setState(final DropFlowFileState state) {
         setState(state, null);
     }
 

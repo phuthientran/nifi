@@ -23,6 +23,7 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
+import java.util.List;
 import java.util.Set;
 
 public interface ConnectionDAO {
@@ -95,6 +96,16 @@ public interface ConnectionDAO {
      * @return The drop request status
      */
     DropFlowFileStatus createFlowFileDropRequest(String id, String dropRequestId);
+    
+    /**
+     * Creates a new flow file drop request.
+     *
+     * @param id connection id
+     * @param flowFileUuids identifier of flow files to be deleted
+     * @param dropRequestId drop request id
+     * @return The drop request status
+     */
+    DropFlowFileStatus createFlowFileDropRequest(String id, String dropRequestId, List<String> flowFileUuids);
 
     /**
      * Creates a new flow file listing request.

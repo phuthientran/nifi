@@ -735,7 +735,18 @@ public class SwappablePriorityQueue {
             logger.debug("For DropFlowFileRequest {}, original size is {}", requestIdentifier, size());
 
             try {
-                final List<FlowFileRecord> activeQueueRecords = new ArrayList<>(activeQueue);
+            	final List<FlowFileRecord> activeQueueRecords;
+            	if (dropRequest.getFlowFileUuids() == null) {
+            		activeQueueRecords = new ArrayList<>(activeQueue);
+            	} else {
+            		// get flow file record for provided uuids
+            		activeQueueRecords = new ArrayList<>();
+            		for(FlowFileRecord flowFile: activeQueue) {
+            			if (dropRequest.getFlowFileUuids().contains(flowFile.getAttribute(CoreAttributes.UUID.key()))) {
+            				activeQueueRecords.add(flowFile);
+            			}
+            		}
+            	}	
 
                 QueueSize droppedSize;
                 try {
@@ -754,7 +765,14 @@ public class SwappablePriorityQueue {
                     return;
                 }
 
-                activeQueue.clear();
+                if (dropRequest.getFlowFileUuids() == null) {
+                	// clear queue
+                	activeQueue.clear();
+                } else {
+                	// remove specific flow files from queue
+                	activeQueue.removeAll(activeQueueRecords);
+                }
+                
                 incrementActiveQueueSize(-droppedSize.getObjectCount(), -droppedSize.getByteCount());
                 dropRequest.setCurrentSize(size());
                 dropRequest.setDroppedSize(dropRequest.getDroppedSize().add(droppedSize));
@@ -768,7 +786,21 @@ public class SwappablePriorityQueue {
                 }
 
                 try {
-                    droppedSize = dropAction.drop(swapQueue, requestor);
+                	if (dropRequest.getFlowFileUuids() == null) {
+                    	swapQueue.clear();
+                    	swapMode = false;
+                    	droppedSize = dropAction.drop(swapQueue, requestor);
+                    } else {
+                    	List<FlowFileRecord> swapFlowFiles = new ArrayList<>();
+                    	for (FlowFileRecord flowFile: swapQueue) {
+                    		if (dropRequest.getFlowFileUuids().contains(flowFile.getAttribute("uuid"))) {
+                    			swapFlowFiles.add(flowFile);
+                    		}
+                    	}
+                    	// remove dropped files from swap queue
+                    	this.swapQueue.removeAll(swapFlowFiles);
+                    	droppedSize = dropAction.drop(swapFlowFiles, requestor);
+                    }
                 } catch (final IOException ioe) {
                     logger.error("Failed to drop the FlowFiles from queue {} due to {}", getQueueIdentifier(), ioe.toString());
                     logger.error("", ioe);
@@ -776,11 +808,10 @@ public class SwappablePriorityQueue {
                     dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe.toString());
                     return;
                 }
-
-                swapQueue.clear();
+                
                 dropRequest.setCurrentSize(size());
                 dropRequest.setDroppedSize(dropRequest.getDroppedSize().add(droppedSize));
-                swapMode = false;
+                
                 incrementSwapQueueSize(-droppedSize.getObjectCount(), -droppedSize.getByteCount(), 0);
                 logger.debug("For DropFlowFileRequest {}, dropped {} from Swap Queue", requestIdentifier, droppedSize);
 
@@ -845,8 +876,6 @@ public class SwappablePriorityQueue {
             writeLock.unlock("Drop FlowFiles");
         }
     }
-
-
 
     public SwapSummary recoverSwappedFlowFiles() {
         int swapFlowFileCount = 0;

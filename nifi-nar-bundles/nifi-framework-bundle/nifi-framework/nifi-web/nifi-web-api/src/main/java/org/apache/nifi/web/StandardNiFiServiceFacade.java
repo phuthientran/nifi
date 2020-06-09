@@ -2000,6 +2000,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public DropRequestDTO createFlowFileDropRequest(final String connectionId, final String dropRequestId) {
         return dtoFactory.createDropRequestDTO(connectionDAO.createFlowFileDropRequest(connectionId, dropRequestId));
     }
+    
+    @Override
+    public DropRequestDTO createFlowFileDropRequest(String connectionId, String dropRequestId, List<String> flowFileUuids) {
+    	return dtoFactory.createDropRequestDTO(connectionDAO.createFlowFileDropRequest(connectionId, dropRequestId, flowFileUuids));
+    }
 
     @Override
     public ListingRequestDTO createFlowFileListingRequest(final String connectionId, final String listingRequestId) {

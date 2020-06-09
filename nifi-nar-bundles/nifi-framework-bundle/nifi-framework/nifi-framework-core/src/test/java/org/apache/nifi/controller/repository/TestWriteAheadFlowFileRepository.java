@@ -238,6 +238,11 @@ public class TestWriteAheadFlowFileRepository {
             public DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor) {
                 return null;
             }
+            
+            @Override
+            public DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor, List<String> flowFileUUids) {
+                return null;
+            }
 
             @Override
             public DropFlowFileStatus getDropFlowFileStatus(String requestIdentifier) {

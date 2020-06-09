@@ -43,6 +43,7 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -65,6 +66,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.List;
 
 /**
  * RESTful endpoint for managing a flowfile queue.
@@ -566,6 +568,80 @@ public class FlowFileQueueResource extends ApplicationResource {
 
                     // submit the drop request
                     final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(connectionEntity.getId(), dropRequestId);
+                    dropRequest.setUri(generateResourceUri("flowfile-queues", connectionEntity.getId(), "drop-requests", dropRequest.getId()));
+
+                    // create the response entity
+                    final DropRequestEntity entity = new DropRequestEntity();
+                    entity.setDropRequest(dropRequest);
+
+                    // generate the URI where the response will be
+                    final URI location = URI.create(dropRequest.getUri());
+                    return Response.status(Status.ACCEPTED).location(location).entity(entity).build();
+                }
+        );
+    }
+    
+    /**
+     * Creates a request to delete specific flowfiles in the queue of the specified connection.
+     *
+     * @param httpServletRequest request
+     * @param id                 The id of the connection
+     * @param flowFileUuids      The uuids of FlowFiles to be deleted that are included in the request body
+     * @return A dropRequestEntity
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/drop-requests/select")
+    @ApiOperation(
+            value = "Creates a request to drop the contents of the queue in this connection.",
+            response = DropRequestEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 202, message = "The request has been accepted. A HTTP response header will contain the URI where the response can be polled."),
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response createDropRequestForFlowFiles(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The connection id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @RequestBody List<String> flowFileUuids) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
+        }
+
+        final ConnectionEntity requestConnectionEntity = new ConnectionEntity();
+        requestConnectionEntity.setId(id);
+
+        return withWriteLock(
+                serviceFacade,
+                requestConnectionEntity,
+                lookup -> {
+                    final ConnectionAuthorizable connAuth = lookup.getConnection(id);
+                    final Authorizable dataAuthorizable = connAuth.getSourceData();
+                    dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                (connectionEntity) -> {
+                    // ensure the id is the same across the cluster
+                    final String dropRequestId = generateUuid();
+
+                    // submit the drop request
+                    final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(
+                    		connectionEntity.getId(), dropRequestId, flowFileUuids);
                     dropRequest.setUri(generateResourceUri("flowfile-queues", connectionEntity.getId(), "drop-requests", dropRequest.getId()));
 
                     // create the response entity

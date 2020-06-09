@@ -63,6 +63,12 @@ public enum ProvenanceEventType {
      * some reason other than object expiration
      */
     DROP,
+    
+    /**
+     * Indicates a provenance event when data is emptied from a queue and 
+     * nifi.content.repository.archive.enabled=true.
+     */
+    ARCHIVE,
 
     /**
      * Indicates a provenance event for the conclusion of an object's life due
