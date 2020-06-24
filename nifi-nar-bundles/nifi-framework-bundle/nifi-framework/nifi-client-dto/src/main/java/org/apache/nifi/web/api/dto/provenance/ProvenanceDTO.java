@@ -17,7 +17,10 @@
 package org.apache.nifi.web.api.dto.provenance;
 
 import io.swagger.annotations.ApiModelProperty;
+
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -73,6 +76,7 @@ public class ProvenanceDTO {
      * @return time the query was submitted
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern=TimestampAdapter.DEFAULT_DATE_TIME_FORMAT)
     @ApiModelProperty(
             value = "The timestamp when the query was submitted.",
             dataType = "string"
@@ -89,6 +93,7 @@ public class ProvenanceDTO {
      * @return expiration time of the query results
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern=TimestampAdapter.DEFAULT_DATE_TIME_FORMAT)
     @ApiModelProperty(
             value = "The timestamp when the query will expire.",
             dataType = "string"

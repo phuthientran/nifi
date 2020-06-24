@@ -19,6 +19,8 @@ package org.apache.nifi.web.api.dto.provenance;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
@@ -59,6 +61,7 @@ public class ProvenanceRequestDTO {
      * @return earliest event time to include in the query
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     @ApiModelProperty(
             value = "The earliest event time to include in the query.",
             dataType = "string"
@@ -75,6 +78,7 @@ public class ProvenanceRequestDTO {
      * @return latest event time to include in the query
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     @ApiModelProperty(
             value = "The latest event time to include in the query.",
             dataType = "string"

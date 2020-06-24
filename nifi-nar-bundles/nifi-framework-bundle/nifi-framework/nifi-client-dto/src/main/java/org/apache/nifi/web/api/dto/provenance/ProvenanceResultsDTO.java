@@ -20,6 +20,8 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
@@ -101,6 +103,7 @@ public class ProvenanceResultsDTO {
      * @return when the search was performed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern=TimeAdapter.DEFAULT_TIME_FORMAT)
     @ApiModelProperty(
             value = "Then the search was performed.",
             dataType = "string"
@@ -117,6 +120,7 @@ public class ProvenanceResultsDTO {
      * @return oldest event available in the provenance repository
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     @ApiModelProperty(
             value = "The oldest event available in the provenance repository.",
             dataType = "string"
