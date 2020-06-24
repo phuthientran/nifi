@@ -170,9 +170,9 @@ public interface FlowFileQueue {
      * @return the status of the drop request.
      */
     DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor);
-    
+
     /**
-     * Initiates a request to drop FlowFiles with the provided UUIDs in this queue. This method 
+     * Initiates a request to drop FlowFiles with the provided UUIDs in this queue. This method
      * returns a DropFlowFileStatus that can be used to determine the current state of the request.
      * Additionally, the DropFlowFileStatus provides a request identifier that can then be
      * passed to the {@link #getDropFlowFileStatus(String)} and {@link #cancelDropFlowFileRequest(String)}
