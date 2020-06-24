@@ -25,7 +25,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -96,8 +96,9 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         // Make sure local flow XML is valid as it'd be loaded for initial cluster synchronization.
         // If it's invalid, rename it to something else to allow cluster synchronization to proceed
         // anyway and NiFi to come up with empty flow instead of dying out due to IOException
-        if (!controller.isFlowSynchronized() && !isValidFlowXml()) {
-            moveFlowXml(dateFormatter.format(LocalDate.now()) + ".malformed.gz", 
+        if (!controller.isFlowSynchronized() && 
+                (Files.exists(flowXmlPath) && !isValidFlowXml())) {
+            moveFlowXml(dateFormatter.format(LocalDateTime.now()) + ".malformed.gz", 
                         "being malformed XML");
         }
         
@@ -108,7 +109,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
             // conflict with cluster flow. Instead of requiring manual removal of the file and 
             // restarting NiFi, we just move the file out of the way as if the node has a blank
             // flow to allow it to use the cluster flow.
-            boolean moved = moveFlowXml(dateFormatter.format(LocalDate.now()) + ".uninherited.gz", 
+            boolean moved = moveFlowXml(dateFormatter.format(LocalDateTime.now()) + ".uninherited.gz", 
                                         "cluster flow is uninheritable by local flow");
             if (!moved) {
                 LOG.error("Failed to rename uninherited flow.xml.gz. Please remove or move it manually " +
