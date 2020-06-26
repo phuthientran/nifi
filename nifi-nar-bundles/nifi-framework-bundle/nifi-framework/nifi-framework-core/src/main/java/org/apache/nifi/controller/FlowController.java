@@ -1416,14 +1416,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
      * @throws MissingBundleException       if the proposed flow cannot be loaded by the
      *                                      controller because it contains a bundle that does not exist in the controller
      */
-    public void synchronize(final FlowSynchronizer synchronizer, final DataFlow dataFlow, final FlowService flowService)
+    public void synchronize(final FlowSynchronizer synchronizer, final DataFlow dataFlow)
             throws FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         writeLock.lock();
         try {
             LOG.debug("Synchronizing controller with proposed flow");
 
             try {
-                synchronizer.sync(this, dataFlow, encryptor, flowService);
+                synchronizer.sync(this, dataFlow, encryptor);
             } catch (final UninheritableFlowException ufe) {
                 final NodeIdentifier localNodeId = getNodeId();
                 if (localNodeId != null) {
