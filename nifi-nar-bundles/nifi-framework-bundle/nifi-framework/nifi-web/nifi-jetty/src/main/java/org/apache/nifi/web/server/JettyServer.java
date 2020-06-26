@@ -1001,6 +1001,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // start the server
             server.start();
 
+<<<<<<< Upstream, based on origin/master
+=======
+            if (webApiScanner != null) {
+                webApiScanner.start();
+            }
+
+>>>>>>> 74ddcf2 Check if dev web api file scanner is set beforing starting and stopping it
             // ensure everything started successfully
             for (Handler handler : server.getChildHandlers()) {
                 // see if the handler is a web app
@@ -1219,6 +1226,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     public void stop() {
         try {
             server.stop();
+<<<<<<< Upstream, based on origin/master
+=======
+            if (webApiScanner != null) {
+                webApiScanner.stop();
+            }
+>>>>>>> 74ddcf2 Check if dev web api file scanner is set beforing starting and stopping it
         } catch (Exception ex) {
             logger.warn("Failed to stop web server", ex);
         }

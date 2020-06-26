@@ -634,10 +634,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             dao.load(baos);
             final byte[] bytes = baos.toByteArray();
 
-            final byte[] snippetBytes = controller.getSnippetManager().export();
-            final byte[] authorizerFingerprint = getAuthorizerFingerprint();
-            final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
-            return fromDisk;
+            if (dao.isValidXml(bytes)) {
+                final byte[] snippetBytes = controller.getSnippetManager().export();
+                final byte[] authorizerFingerprint = getAuthorizerFingerprint();
+                final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
+                return fromDisk;
+            } else {
+                logger.warn("Existing Flow XML is malformed. Trying to obtain it from FlowController...");
+            }
         }
 
         // Flow from disk does not exist, so serialize the Flow Controller and use that.
@@ -835,7 +839,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         // load the flow
         logger.debug("Loading proposed flow into FlowController");
-        dao.load(controller, actualProposedFlow, this);
+        dao.load(controller, actualProposedFlow);
 
         final ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         if (rootGroup.isEmpty() && !allowEmptyFlow) {
@@ -1078,14 +1082,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     public void copyCurrentFlow(final OutputStream os) throws IOException {
         readLock.lock();
         try {
-            if (!Files.exists(flowXml) || Files.size(flowXml) == 0) {
-                return;
-            }
-
-            try (final InputStream in = Files.newInputStream(flowXml, StandardOpenOption.READ);
-                    final InputStream gzipIn = new GZIPInputStream(in)) {
-                FileUtils.copy(gzipIn, os);
-            }
+            dao.load(os);
         } finally {
             readLock.unlock();
         }
