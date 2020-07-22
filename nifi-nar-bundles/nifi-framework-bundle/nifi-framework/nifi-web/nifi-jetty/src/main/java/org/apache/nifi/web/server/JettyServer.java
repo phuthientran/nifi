@@ -649,7 +649,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         String contextRoot = props.getWebContextRoot();
         if (contextRoot != null && contextRoot.length() > 0) {
             // Remove the ending slash if present
-            contextRoot = contextRoot.replaceAll("/$", "");
+            contextRoot = contextRoot.replaceAll("(.*)/$", "$1");
         }
         return (contextRoot != null ? contextRoot : "");
     }
