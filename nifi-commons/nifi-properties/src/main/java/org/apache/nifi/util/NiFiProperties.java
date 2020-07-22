@@ -193,7 +193,8 @@ public abstract class NiFiProperties {
     public static final String WEB_MAX_HEADER_SIZE = "nifi.web.max.header.size";
     public static final String WEB_PROXY_CONTEXT_PATH = "nifi.web.proxy.context.path";
     public static final String WEB_PROXY_HOST = "nifi.web.proxy.host";
-
+    public static final String WEB_CONTEXT_ROOT = "nifi.web.context.root";
+    
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
     public static final String UI_AUTO_REFRESH_INTERVAL = "nifi.ui.autorefresh.interval";
@@ -1258,6 +1259,12 @@ public abstract class NiFiProperties {
 
     public Integer getFlowConfigurationArchiveMaxCount() {
         return getIntegerProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_COUNT, null);
+    }
+    
+    public String getWebContextRoot() {
+        String context = getProperty(WEB_CONTEXT_ROOT, "");
+        // Force prefixing with "/"
+        return context.replaceAll("/?(.+)", "/$1");
     }
 
     public String getVariableRegistryProperties() {
