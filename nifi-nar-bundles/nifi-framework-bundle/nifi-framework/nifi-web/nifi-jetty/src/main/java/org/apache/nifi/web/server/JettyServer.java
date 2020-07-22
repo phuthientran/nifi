@@ -601,7 +601,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webappContext.setMaxFormContentSize(600000);
 
         // add HTTP security headers to all responses
-        final String ALL_PATHS = "/*";
+        final String ALL_PATHS = getWebContextRoot() + "/*";
         ArrayList<Class<? extends Filter>> filters =
                 new ArrayList<>(Arrays.asList(
                         XFrameOptionsFilter.class,
