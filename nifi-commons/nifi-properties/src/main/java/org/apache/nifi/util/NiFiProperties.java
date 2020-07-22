@@ -208,15 +208,11 @@ public abstract class NiFiProperties {
     public static final String WEB_MAX_HEADER_SIZE = "nifi.web.max.header.size";
     public static final String WEB_PROXY_CONTEXT_PATH = "nifi.web.proxy.context.path";
     public static final String WEB_PROXY_HOST = "nifi.web.proxy.host";
-<<<<<<< Upstream, based on origin/master
+    public static final String WEB_CONTEXT_ROOT = "nifi.web.context.root";
     public static final String WEB_MAX_CONTENT_SIZE = "nifi.web.max.content.size";
     public static final String WEB_MAX_REQUESTS_PER_SECOND = "nifi.web.max.requests.per.second";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.web.should.send.server.version";
 
-=======
-    public static final String WEB_CONTEXT_ROOT = "nifi.web.context.root";
-    
->>>>>>> 78362f5 Add nifi.web.context.root to support prefixing "/nifi", and other webapp contexts with a context root to work with mod_proxy.
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
     public static final String UI_AUTO_REFRESH_INTERVAL = "nifi.ui.autorefresh.interval";
