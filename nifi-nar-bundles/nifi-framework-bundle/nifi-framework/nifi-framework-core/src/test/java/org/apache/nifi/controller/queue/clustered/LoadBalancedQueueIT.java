@@ -219,7 +219,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testNewNodeAdded() throws IOException, InterruptedException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null, null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
@@ -256,7 +256,7 @@ public class LoadBalancedQueueIT {
                 final int loadBalancePort = server.getPort();
 
                 // Create the Load Balanced FlowFile Queue
-                final NodeIdentifier nodeId = new NodeIdentifier("unit-test-" + i, "localhost", 8090 + i, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+                final NodeIdentifier nodeId = new NodeIdentifier("unit-test-" + i, "localhost", 8090 + i, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
                 nodeIdentifiers.add(nodeId);
 
 
@@ -309,7 +309,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 90_000)
     public void testFailover() throws IOException, InterruptedException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
@@ -324,12 +324,12 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier availableNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier availableNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(availableNodeId);
 
             // Add a Node Identifier pointing to a non-existent server
             final NodeIdentifier inaccessibleNodeId = new NodeIdentifier("unit-test-invalid-host-does-not-exist", "invalid-host-does-not-exist", 8090, "invalid-host-does-not-exist", 8090,
-                    "invalid-host-does-not-exist", loadBalancePort, null, null, null, false, null);
+                    "invalid-host-does-not-exist", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(inaccessibleNodeId);
 
 
@@ -412,7 +412,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testTransferToRemoteNode() throws IOException, InterruptedException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
@@ -427,7 +427,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -500,7 +500,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testContentNotFound() throws IOException, InterruptedException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
@@ -515,7 +515,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -570,7 +570,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testTransferToRemoteNodeAttributeCompression() throws IOException, InterruptedException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
         compressionReference.set(LoadBalanceCompression.COMPRESS_ATTRIBUTES_ONLY);
 
@@ -586,7 +586,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -660,7 +660,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testTransferToRemoteNodeContentCompression() throws IOException, InterruptedException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
         compressionReference.set(LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT);
 
@@ -676,7 +676,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -749,7 +749,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testWithSSLContext() throws IOException, InterruptedException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
@@ -764,7 +764,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -837,7 +837,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 60_000)
     public void testReusingClient() throws IOException, InterruptedException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
@@ -851,7 +851,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -924,7 +924,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testLargePayload() throws IOException, InterruptedException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
@@ -938,7 +938,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -1054,7 +1054,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -1144,7 +1144,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testNotAuthorized() throws IOException, InterruptedException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
@@ -1158,7 +1158,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -1210,7 +1210,7 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 35_000)
     public void testDestinationNodeQueueFull() throws IOException, InterruptedException {
-        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null);
         nodeIdentifiers.add(localNodeId);
 
         when(serverQueue.isLocalPartitionFull()).thenReturn(true);
@@ -1226,7 +1226,7 @@ public class LoadBalancedQueueIT {
             final int loadBalancePort = server.getPort();
 
             // Create the Load Balanced FlowFile Queue
-            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, (String)null);
             nodeIdentifiers.add(remoteNodeId);
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
