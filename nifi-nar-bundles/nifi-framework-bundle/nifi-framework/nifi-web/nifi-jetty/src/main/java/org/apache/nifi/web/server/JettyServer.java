@@ -159,6 +159,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private Collection<WebAppContext> componentUiExtensionWebContexts;
 
     private DeploymentManager deploymentManager;
+    private Scanner webApiScanner;
 
     /**
      * Default no-arg constructor for ServiceLoader
@@ -235,6 +236,32 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
+
+                final String devWebApiWarPath = "./lib/nifi-web-api.war";
+                File explodedWar = new File(devWebApiWarPath);
+                if (explodedWar.exists()) {
+                    webApiWar = explodedWar;
+
+                    // Scanner for detecting file changes to restart server
+                    webApiScanner = new Scanner();
+                    webApiScanner.setScanDirs(Arrays.asList(new File(devWebApiWarPath)));
+                    webApiScanner.setScanInterval(1);
+                    webApiScanner.setRecursive(true);
+                    webApiScanner.setReportDirs(true);
+                    webApiScanner.addListener(new Scanner.DiscreteListener() {
+                        @Override
+                        public void fileChanged(String filename) throws Exception {
+                            JettyServer.this.stop();
+                            JettyServer.this.start();
+                        }
+                        @Override
+                        public void fileAdded(String filename) throws Exception {
+                        }
+                        @Override
+                        public void fileRemoved(String filename) throws Exception {
+                        }
+                    });
+                }
             } else if (war.getName().toLowerCase().startsWith("nifi-web-error")) {
                 webErrorWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-docs")) {
@@ -281,7 +308,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final ClassLoader frameworkClassLoader = getClass().getClassLoader();
 
         // load the web ui app
-        final WebAppContext webUiContext = loadWar(webUiWar, "/nifi", frameworkClassLoader);
+        final WebAppContext webUiContext = loadWar(webUiWar, getWebContextRoot() + "/nifi", frameworkClassLoader);
         webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
         webUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
         webUiContext.getInitParams().put("saml-supported", String.valueOf(props.isSamlEnabled()));
@@ -290,16 +317,16 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webAppContextHandlers.addHandler(webUiContext);
 
         // load the web api app
-        webApiContext = loadWar(webApiWar, "/nifi-api", frameworkClassLoader);
+        webApiContext = loadWar(webApiWar, getWebContextRoot() + "/nifi-api", frameworkClassLoader);
         webAppContextHandlers.addHandler(webApiContext);
 
         // load the content viewer app
-        webContentViewerContext = loadWar(webContentViewerWar, "/nifi-content-viewer", frameworkClassLoader);
+        webContentViewerContext = loadWar(webContentViewerWar, getWebContextRoot() + "/nifi-content-viewer", frameworkClassLoader);
         webContentViewerContext.getInitParams().putAll(extensionUiInfo.getMimeMappings());
         webAppContextHandlers.addHandler(webContentViewerContext);
 
         // create a web app for the docs
-        final String docsContextPath = "/nifi-docs";
+        final String docsContextPath = getWebContextRoot() + "/nifi-docs";
 
         // load the documentation war
         webDocsContext = loadWar(webDocsWar, docsContextPath, frameworkClassLoader);
@@ -310,7 +337,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webAppContextHandlers.addHandler(webDocsContext);
 
         // load the web error app
-        final WebAppContext webErrorContext = loadWar(webErrorWar, "/", frameworkClassLoader);
+        final WebAppContext webErrorContext = loadWar(webErrorWar, getWebContextRoot() + "/", frameworkClassLoader);
         webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webErrorContext);
 
@@ -387,7 +414,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 if (!uiExtensionInWar.isEmpty()) {
                     // get the context path
                     String warName = StringUtils.substringBeforeLast(war.getName(), ".");
-                    String warContextPath = String.format("/%s", warName);
+                    String warContextPath = String.format("%s/%s", getWebContextRoot(), warName);
 
                     // get the classloader for this war
                     ClassLoader narClassLoaderForWar = warBundle.getClassLoader();
@@ -614,7 +641,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // add HTTP security headers to all responses
         // TODO: Allow more granular path configuration (e.g. /nifi-api/site-to-site/ vs. /nifi-api/process-groups)
-        final String ALL_PATHS = "/*";
+        final String ALL_PATHS = getWebContextRoot() + "/*";
         ArrayList<Class<? extends Filter>> filters =
                 new ArrayList<>(Arrays.asList(
                         XFrameOptionsFilter.class,
@@ -637,6 +664,18 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         logger.info("Loading WAR: " + warFile.getAbsolutePath() + " with context path set to " + contextPath);
         return webappContext;
+    }
+
+    private String getWebContextRoot() {
+        // Place all webapps under the same root context to allow NiFi UI to continue working
+        // for the hardcoded contexts, e.g. /nifi, on different nodes in a cluster setup
+        // to work with different
+        String contextRoot = props.getWebContextRoot();
+        if (contextRoot != null && contextRoot.length() > 0) {
+            // Remove the ending slash if present
+            contextRoot = contextRoot.replaceAll("(.+)/$", "$1");
+        }
+        return (contextRoot != null ? contextRoot : "");
     }
 
     private void addFilters(Class<? extends Filter> clazz, String path, WebAppContext webappContext) {
@@ -1063,13 +1102,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // start the server
             server.start();
 
-<<<<<<< Upstream, based on origin/master
-=======
             if (webApiScanner != null) {
                 webApiScanner.start();
             }
 
->>>>>>> 74ddcf2 Check if dev web api file scanner is set beforing starting and stopping it
             // ensure everything started successfully
             for (Handler handler : server.getChildHandlers()) {
                 // see if the handler is a web app
