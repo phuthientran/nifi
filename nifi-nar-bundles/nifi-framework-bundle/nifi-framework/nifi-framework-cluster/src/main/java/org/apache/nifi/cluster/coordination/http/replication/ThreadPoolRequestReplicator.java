@@ -158,7 +158,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         maintenanceExecutor.shutdown();
     }
 
-
     @Override
     public AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers) {
         return replicate(NiFiUserUtils.getNiFiUser(), method, uri, entity, headers);
@@ -792,12 +791,19 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
     }
 
-
     private URI createURI(final URI exampleUri, final NodeIdentifier nodeId) {
-        return createURI(exampleUri.getScheme(), nodeId.getApiAddress(), nodeId.getApiPort(), exampleUri.getPath(), exampleUri.getQuery());
+        String uriPath = exampleUri.getPath();
+        // Check for context root to be not just "/"
+        if (nodeId.getWebContextRoot() != null && nodeId.getWebContextRoot().length() > 1) {
+            // Substitute the context root in the example URI with that of this node
+            uriPath = nodeId.getWebContextRoot() + uriPath.replaceAll("^/[^/]+", "");
+        }
+        return createURI(exampleUri.getScheme(), nodeId.getApiAddress(), 
+                         nodeId.getApiPort(), uriPath, exampleUri.getQuery());
     }
 
-    private URI createURI(final String scheme, final String nodeApiAddress, final int nodeApiPort, final String path, final String query) {
+    private URI createURI(final String scheme, final String nodeApiAddress, final int nodeApiPort, 
+                          final String path, final String query) {
         try {
             return new URI(scheme, null, nodeApiAddress, nodeApiPort, path, query, null);
         } catch (final URISyntaxException e) {
