@@ -2263,19 +2263,13 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
 
             Set<DropRequestDTO> allDropRequests = new HashSet();
-            Set<String> deletedGroupId = new HashSet();
+            Set<String>  deletedGroupId = new HashSet();
+            Set<ProcessGroupEntity> processGroupEntities = getAllProcessGroups(groupId);
 
-            ProcessGroupStatusEntity status = serviceFacade.getProcessGroupStatus(parentGroup.getId(),true);
+            //clear queues and flow files
+            for (ProcessGroupEntity processGroupEntity : processGroupEntities) {
 
-            for (ProcessGroupEntity processGroupEntity :serviceFacade.getProcessGroups(parentGroup.getId())) {
-
-                ProcessGroupEntity connectionParentGroup = serviceFacade.getProcessGroup(serviceFacade.getProcessGroup(groupId).getComponent().getParentGroupId()) !=null ?
-                        serviceFacade.getProcessGroup(serviceFacade.getProcessGroup(groupId).getComponent().getParentGroupId()) :
-                        serviceFacade.getProcessGroup(processGroupEntity.getId());
-
-
-
-                Set<ConnectionEntity> parentConnections = serviceFacade.getConnections(connectionParentGroup.getId());
+                Set<ConnectionEntity> parentConnections = getAllConnectionIds(processGroupEntity);
 
                 //get all parent connections
                 for (ConnectionEntity connection : parentConnections) {
@@ -2287,7 +2281,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     }
                 }
 
-
                 ProcessGroupFlowEntity fe = serviceFacade.getProcessGroupFlow(processGroupEntity.getId());
                 ProcessGroupFlowDTO entityTest = fe.getProcessGroupFlow();
                 FlowDTO flow = entityTest.getFlow();
@@ -2295,17 +2288,21 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                 //Drop all flow connections
                 for (ConnectionEntity connection : flow.getConnections()) {
-                    if ( (processGroupEntity.getId().equals(connection.getDestinationGroupId())) || (processGroupEntity.getId().equals(connection.getSourceGroupId()))) {
+                    if ((processGroupEntity.getId().equals(connection.getDestinationGroupId())) || (processGroupEntity.getId().equals(connection.getSourceGroupId()))) {
                         final String dropRequestId = generateUuid();
                         allDropRequests.add(serviceFacade.createFlowFileDropRequest(connection.getId(), dropRequestId));
 
                     }
                 }
 
+            }
+            //Cleanup and delete function
+            for (ProcessGroupEntity processGroupEntity : processGroupEntities ) {
 
                 Set<ConnectionEntity> deletedConnections = new HashSet();
                 Set<ConnectionEntity> notDeletedConnections = new HashSet();
 
+                Set<ConnectionEntity> parentConnections = getAllConnectionIds(processGroupEntity);
 
                 //delete all parent connections
                 for (ConnectionEntity connection : parentConnections) {
@@ -2322,6 +2319,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     }
                 }
 
+
+                ProcessGroupFlowEntity fe = serviceFacade.getProcessGroupFlow(processGroupEntity.getId());
+                ProcessGroupFlowDTO entityTest = fe.getProcessGroupFlow();
+                FlowDTO flow = entityTest.getFlow();
 
                 //Delete all flow connections
                 for (ConnectionEntity connection : flow.getConnections()) {
@@ -2403,7 +2404,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                 //Delete Processor Group
                 for (RemoteProcessGroupEntity processorGroupEntity : flow.getRemoteProcessGroups()) {
-                    if ( !deletedGroupId.contains(processGroupEntity.getId())
+                    if ( !deletedGroupId.contains(processorGroupEntity.getId())
                             &&
                             processGroupEntity.getId().equals(processorGroupEntity.getComponent().getParentGroupId())) {
                         Revision rev = new Revision(processorGroupEntity.getRevision().getVersion(), processorGroupEntity.getRevision().getClientId(), processorGroupEntity.getComponent().getId());
@@ -2466,7 +2467,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         return generateOkResponse(parentGroup).build();
     }
-
 
     /**
      * Drops all request and empties flow file queue in process group
@@ -2649,7 +2649,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                         serviceFacade.getProcessGroup(processGroupEntity.getId());
 
 
-                Set<ConnectionEntity> parentConnections = serviceFacade.getConnections(connectionParentGroup.getId());
+                Set<ConnectionEntity> parentConnections = getAllConnectionIds(processGroupEntity);
 
                 //get all parent connections
                 for (ConnectionEntity connection : parentConnections) {
@@ -4670,6 +4670,40 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         return serviceFacade.updateProcessGroupContents(revision, groupId, null, flowSnapshot, idGenerationSeed, verifyNotModified,
                 true, updateDescendantVersionedFlows);
     }
+
+    private Set<ProcessGroupEntity> getAllProcessGroups(String groupID) {
+
+        Set<ProcessGroupEntity>  allProcessGroups = new HashSet();
+        ProcessGroupEntity processGroupEntity = serviceFacade.getProcessGroup(groupID);
+
+        String parentGroupId = processGroupEntity.getComponent().getParentGroupId() ;
+        String groupId= processGroupEntity.getId();
+
+        if (parentGroupId != null ){
+            allProcessGroups.addAll(serviceFacade.getProcessGroups(parentGroupId));
+        }
+        if ( groupId != null ){
+            allProcessGroups.addAll(serviceFacade.getProcessGroups(groupId));
+        }
+        return allProcessGroups;
+    }
+
+    private Set<ConnectionEntity> getAllConnectionIds(ProcessGroupEntity processGroupEntity) {
+
+        Set<ConnectionEntity>  allConnections = new HashSet();
+
+        String parentGroupId = processGroupEntity.getComponent().getParentGroupId() ;
+        String groupId= processGroupEntity.getId();
+
+        if (parentGroupId != null ){
+            allConnections.addAll(serviceFacade.getConnections(parentGroupId));
+        }
+        if ( groupId != null ){
+            allConnections.addAll(serviceFacade.getConnections(groupId));
+        }
+        return allConnections;
+    }
+
 
     /**
      * Create the entity that is used for update flow replication. The initial replace request entity can be re-used for the replication request.
