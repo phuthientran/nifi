@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_ENABLED;
-import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_STOPPED;
-
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -27,35 +24,54 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.nifi.authorization.*;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.OperationAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
+import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.registry.bucket.Bucket;
+import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.FlowRegistryUtils;
+import org.apache.nifi.registry.flow.VersionedFlow;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
+import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
+import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.*;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
+import org.apache.nifi.web.api.entity.*;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.apache.nifi.web.util.Pause;
+import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -83,109 +99,27 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLStreamReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
-import org.apache.nifi.authorization.AuthorizableLookup;
-import org.apache.nifi.authorization.AuthorizeAccess;
-import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
-import org.apache.nifi.authorization.AuthorizeParameterReference;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ComponentAuthorizable;
-import org.apache.nifi.authorization.ProcessGroupAuthorizable;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.SnippetAuthorizable;
-import org.apache.nifi.authorization.TemplateContentsAuthorizable;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.connectable.ConnectableType;
-import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.serialization.FlowEncodingVersion;
-import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.flow.FlowRegistryUtils;
-import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedFlowState;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
-import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
-import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
-import org.apache.nifi.security.xml.XmlUtils;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.ResourceNotFoundException;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.AffectedComponentDTO;
-import org.apache.nifi.web.api.dto.BundleDTO;
-import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.DropRequestDTO;
-import org.apache.nifi.web.api.dto.DtoFactory;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.apache.nifi.web.api.dto.PositionDTO;
-import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryDTO;
-import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
-import org.apache.nifi.web.api.dto.flow.FlowDTO;
-import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
-import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
-import org.apache.nifi.web.api.entity.AffectedComponentEntity;
-import org.apache.nifi.web.api.entity.ConnectionEntity;
-import org.apache.nifi.web.api.entity.ConnectionsEntity;
-import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.ControllerServicesEntity;
-import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
-import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
-import org.apache.nifi.web.api.entity.Entity;
-import org.apache.nifi.web.api.entity.FlowComparisonEntity;
-import org.apache.nifi.web.api.entity.FlowEntity;
-import org.apache.nifi.web.api.entity.FunnelEntity;
-import org.apache.nifi.web.api.entity.FunnelsEntity;
-import org.apache.nifi.web.api.entity.InputPortsEntity;
-import org.apache.nifi.web.api.entity.InstantiateTemplateRequestEntity;
-import org.apache.nifi.web.api.entity.LabelEntity;
-import org.apache.nifi.web.api.entity.LabelsEntity;
-import org.apache.nifi.web.api.entity.OutputPortsEntity;
-import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
-import org.apache.nifi.web.api.entity.PortEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProcessorsEntity;
-import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
-import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
-import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.TemplateEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
-import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.apache.nifi.web.util.Pause;
-import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.*;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -195,12 +129,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
         value = "/process-groups",
         description = "Endpoint for managing a Process Group."
 )
-public class ProcessGroupResource extends ApplicationResource {
+public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportEntity, ProcessGroupReplaceRequestEntity> {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResource.class);
-
-    private NiFiServiceFacade serviceFacade;
-    private Authorizer authorizer;
 
     private ProcessorResource processorResource;
     private InputPortResource inputPortResource;
@@ -211,22 +142,21 @@ public class ProcessGroupResource extends ApplicationResource {
     private ConnectionResource connectionResource;
     private TemplateResource templateResource;
     private ControllerServiceResource controllerServiceResource;
-    private DtoFactory dtoFactory;
 
     private final ConcurrentMap<String, VariableRegistryUpdateRequest> varRegistryUpdateRequests = new ConcurrentHashMap<>();
     private static final int MAX_VARIABLE_REGISTRY_UPDATE_REQUESTS = 100;
     private static final long VARIABLE_REGISTRY_UPDATE_REQUEST_EXPIRATION = TimeUnit.MINUTES.toMillis(1L);
     private final ExecutorService variableRegistryThreadPool = new ThreadPoolExecutor(1, 50, 5L, TimeUnit.SECONDS,
-        new ArrayBlockingQueue<Runnable>(MAX_VARIABLE_REGISTRY_UPDATE_REQUESTS),
-        new ThreadFactory() {
-            @Override
-            public Thread newThread(final Runnable r) {
-                final Thread thread = Executors.defaultThreadFactory().newThread(r);
-                thread.setName("Variable Registry Update Thread");
-                thread.setDaemon(true);
-                return thread;
-            }
-        });
+            new ArrayBlockingQueue<Runnable>(MAX_VARIABLE_REGISTRY_UPDATE_REQUESTS),
+            new ThreadFactory() {
+                @Override
+                public Thread newThread(final Runnable r) {
+                    final Thread thread = Executors.defaultThreadFactory().newThread(r);
+                    thread.setName("Variable Registry Update Thread");
+                    thread.setDaemon(true);
+                    return thread;
+                }
+            });
 
     /**
      * Populates the remaining fields in the specified process groups.
@@ -338,18 +268,18 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/download")
     @ApiOperation(
-        value = "Gets a process group for download",
-        response = String.class,
-        authorizations = {
-            @Authorization(value = "Read - /process-groups/{uuid}")
-        }
+            value = "Gets a process group for download",
+            response = String.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}")
+            }
     )
     @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response exportProcessGroup(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId) {
         // authorize access
@@ -385,8 +315,8 @@ public class ProcessGroupResource extends ApplicationResource {
             value = "Gets a list of local modifications to the Process Group since it was last synchronized with the Flow Registry",
             response = FlowComparisonEntity.class,
             authorizations = {
-            @Authorization(value = "Read - /process-groups/{uuid}"),
-            @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components")
+                    @Authorization(value = "Read - /process-groups/{uuid}"),
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components")
             }
     )
     @ApiResponses(
@@ -427,21 +357,21 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/variable-registry")
     @ApiOperation(value = "Gets a process group's variable registry",
-        response = VariableRegistryEntity.class,
-        notes = NON_GUARANTEED_ENDPOINT,
-        authorizations = {
-            @Authorization(value = "Read - /process-groups/{uuid}")
-        })
+            response = VariableRegistryEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response getVariableRegistry(
-        @ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
-        @ApiParam(value = "Whether or not to include ancestor groups", required = false) @QueryParam("includeAncestorGroups") @DefaultValue("true") final boolean includeAncestorGroups) {
+            @ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
+            @ApiParam(value = "Whether or not to include ancestor groups", required = false) @QueryParam("includeAncestorGroups") @DefaultValue("true") final boolean includeAncestorGroups) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -599,21 +529,21 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{groupId}/variable-registry/update-requests/{updateId}")
     @ApiOperation(value = "Gets a process group's variable registry",
-        response = VariableRegistryUpdateRequestEntity.class,
-        notes = NON_GUARANTEED_ENDPOINT,
-        authorizations = {
-            @Authorization(value = "Read - /process-groups/{uuid}")
-        })
+            response = VariableRegistryUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response getVariableRegistryUpdateRequest(
-        @ApiParam(value = "The process group id.", required = true) @PathParam("groupId") final String groupId,
-        @ApiParam(value = "The ID of the Variable Registry Update Request", required = true) @PathParam("updateId") final String updateId) {
+            @ApiParam(value = "The process group id.", required = true) @PathParam("groupId") final String groupId,
+            @ApiParam(value = "The ID of the Variable Registry Update Request", required = true) @PathParam("updateId") final String updateId) {
 
         if (groupId == null || updateId == null) {
             throw new IllegalArgumentException("Group ID and Update ID must both be specified.");
@@ -653,33 +583,33 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{groupId}/variable-registry/update-requests/{updateId}")
     @ApiOperation(value = "Deletes an update request for a process group's variable registry. If the request is not yet complete, it will automatically be cancelled.",
-        response = VariableRegistryUpdateRequestEntity.class,
-        notes = NON_GUARANTEED_ENDPOINT,
-        authorizations = {
-            @Authorization(value = "Read - /process-groups/{uuid}")
-        })
+            response = VariableRegistryUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response deleteVariableRegistryUpdateRequest(
-        @ApiParam(
-                value = "The process group id.",
-                required = true
-        )
-        @PathParam("groupId") final String groupId,
-        @ApiParam(
-                value = "The ID of the Variable Registry Update Request",
-                required = true)
-        @PathParam("updateId") final String updateId,
-        @ApiParam(
-                value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                required = false
-        )
-        @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("groupId") final String groupId,
+            @ApiParam(
+                    value = "The ID of the Variable Registry Update Request",
+                    required = true)
+            @PathParam("updateId") final String updateId,
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged) {
 
         if (groupId == null || updateId == null) {
             throw new IllegalArgumentException("Group ID and Update ID must both be specified.");
@@ -726,19 +656,19 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/variable-registry")
     @ApiOperation(value = "Updates the contents of a Process Group's variable Registry", response = VariableRegistryEntity.class, notes = NON_GUARANTEED_ENDPOINT, authorizations = {
-        @Authorization(value = "Write - /process-groups/{uuid}")
+            @Authorization(value = "Write - /process-groups/{uuid}")
     })
     @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response updateVariableRegistry(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
-        @ApiParam(value = "The variable registry configuration details.", required = true) final VariableRegistryEntity requestVariableRegistryEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
+            @ApiParam(value = "The variable registry configuration details.", required = true) final VariableRegistryEntity requestVariableRegistryEntity) {
 
         if (requestVariableRegistryEntity == null || requestVariableRegistryEntity.getVariableRegistry() == null) {
             throw new IllegalArgumentException("Variable Registry details must be specified.");
@@ -764,21 +694,21 @@ public class ProcessGroupResource extends ApplicationResource {
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(requestVariableRegistryEntity.getProcessGroupRevision(), groupId);
         return withWriteLock(
-            serviceFacade,
-            requestVariableRegistryEntity,
-            requestRevision,
-            lookup -> {
-                Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            },
-            null,
-            (revision, variableRegistryEntity) -> {
-                final VariableRegistryDTO variableRegistry = variableRegistryEntity.getVariableRegistry();
+                serviceFacade,
+                requestVariableRegistryEntity,
+                requestRevision,
+                lookup -> {
+                    Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                (revision, variableRegistryEntity) -> {
+                    final VariableRegistryDTO variableRegistry = variableRegistryEntity.getVariableRegistry();
 
-                // update the process group
-                final VariableRegistryEntity entity = serviceFacade.updateVariableRegistry(revision, variableRegistry);
-                return generateOkResponse(entity).build();
-            });
+                    // update the process group
+                    final VariableRegistryEntity entity = serviceFacade.updateVariableRegistry(revision, variableRegistry);
+                    return generateOkResponse(entity).build();
+                });
     }
 
 
@@ -795,22 +725,22 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/variable-registry/update-requests")
     @ApiOperation(value = "Submits a request to update a process group's variable registry",
-        response = VariableRegistryUpdateRequestEntity.class,
-        notes = NON_GUARANTEED_ENDPOINT,
-        authorizations = {
-            @Authorization(value = "Write - /process-groups/{uuid}")
-        })
+            response = VariableRegistryUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response submitUpdateVariableRegistryRequest(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
-        @ApiParam(value = "The variable registry configuration details.", required = true) final VariableRegistryEntity requestVariableRegistryEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
+            @ApiParam(value = "The variable registry configuration details.", required = true) final VariableRegistryEntity requestVariableRegistryEntity) {
 
         if (requestVariableRegistryEntity == null || requestVariableRegistryEntity.getVariableRegistry() == null) {
             throw new IllegalArgumentException("Variable Registry details must be specified.");
@@ -845,7 +775,7 @@ public class ProcessGroupResource extends ApplicationResource {
         final Set<AffectedComponentDTO> activeAffectedComponents = serviceFacade.getActiveComponentsAffectedByVariableRegistryUpdate(requestVariableRegistryEntity.getVariableRegistry());
 
         final Map<String, List<AffectedComponentDTO>> activeAffectedComponentsByType = activeAffectedComponents.stream()
-            .collect(Collectors.groupingBy(comp -> comp.getReferenceType()));
+                .collect(Collectors.groupingBy(comp -> comp.getReferenceType()));
 
         final List<AffectedComponentDTO> activeAffectedProcessors = activeAffectedComponentsByType.get(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
         final List<AffectedComponentDTO> activeAffectedServices = activeAffectedComponentsByType.get(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
@@ -923,14 +853,14 @@ public class ProcessGroupResource extends ApplicationResource {
 
         final Revision requestRevision = getRevision(requestVariableRegistryEntity.getProcessGroupRevision(), groupId);
         return withWriteLock(
-            serviceFacade,
-            requestWrapper,
-            requestRevision,
-            authorizeAccess,
-            null,
-            (revision, wrapper) ->
-                    updateVariableRegistryLocal(groupId, wrapper.getAllAffectedComponents(), wrapper.getActiveAffectedProcessors(),
-                        wrapper.getActiveAffectedServices(), user, revision, wrapper.getVariableRegistryEntity())
+                serviceFacade,
+                requestWrapper,
+                requestRevision,
+                authorizeAccess,
+                null,
+                (revision, wrapper) ->
+                        updateVariableRegistryLocal(groupId, wrapper.getAllAffectedComponents(), wrapper.getActiveAffectedProcessors(),
+                                wrapper.getActiveAffectedServices(), user, revision, wrapper.getVariableRegistryEntity())
         );
     }
 
@@ -1014,7 +944,7 @@ public class ProcessGroupResource extends ApplicationResource {
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/process-groups/" + groupId + "/processors", "includeDescendantGroups=true", originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/process-groups/" + groupId + "/processors", "includeDescendantGroups=true", originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -1163,7 +1093,7 @@ public class ProcessGroupResource extends ApplicationResource {
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false,includeDescendantGroups=true", originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false,includeDescendantGroups=true", originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -1195,10 +1125,10 @@ public class ProcessGroupResource extends ApplicationResource {
 
             final String desiredStateName = desiredState.name();
             final boolean allServicesMatch = serviceEntities.stream()
-                .map(entity -> entity.getComponent())
-                .filter(service -> serviceIds.contains(service.getId()))
-                .map(service -> service.getState())
-                .allMatch(state -> state.equals(desiredStateName));
+                    .map(entity -> entity.getComponent())
+                    .filter(service -> serviceIds.contains(service.getId()))
+                    .map(service -> service.getState())
+                    .allMatch(state -> state.equals(desiredStateName));
 
             if (allServicesMatch) {
                 logger.debug("All {} controller services of interest now have the desired state of {}", serviceIds.size(), desiredState);
@@ -1234,10 +1164,10 @@ public class ProcessGroupResource extends ApplicationResource {
 
             final String desiredStateName = desiredState.name();
             final boolean allServicesMatch = serviceEntities.stream()
-                .map(entity -> entity.getComponent())
-                .filter(service -> serviceIds.contains(service.getId()))
-                .map(service -> service.getState())
-                .allMatch(state -> desiredStateName.equals(state));
+                    .map(entity -> entity.getComponent())
+                    .filter(service -> serviceIds.contains(service.getId()))
+                    .map(service -> service.getState())
+                    .allMatch(state -> desiredStateName.equals(state));
 
 
             if (allServicesMatch) {
@@ -1259,17 +1189,17 @@ public class ProcessGroupResource extends ApplicationResource {
         // and then removing those ID's one-at-a-time in order to avoid ConcurrentModificationException.
         final Date oneMinuteAgo = new Date(System.currentTimeMillis() - VARIABLE_REGISTRY_UPDATE_REQUEST_EXPIRATION);
         final List<String> completedRequestIds = varRegistryUpdateRequests.entrySet().stream()
-            .filter(entry -> entry.getValue().isComplete())
-            .filter(entry -> entry.getValue().getLastUpdated().before(oneMinuteAgo))
-            .map(Map.Entry::getKey)
-            .collect(Collectors.toList());
+                .filter(entry -> entry.getValue().isComplete())
+                .filter(entry -> entry.getValue().getLastUpdated().before(oneMinuteAgo))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
 
         completedRequestIds.forEach(varRegistryUpdateRequests::remove);
 
         final int requestCount = varRegistryUpdateRequests.size();
         if (requestCount > MAX_VARIABLE_REGISTRY_UPDATE_REQUESTS) {
             throw new IllegalStateException("There are already " + requestCount + " update requests for variable registries. "
-                + "Cannot issue any more requests until the older ones are deleted or expire");
+                    + "Cannot issue any more requests until the older ones are deleted or expire");
         }
 
         this.varRegistryUpdateRequests.put(updateRequest.getRequestId(), updateRequest);
@@ -1280,13 +1210,13 @@ public class ProcessGroupResource extends ApplicationResource {
                                                  final List<AffectedComponentDTO> affectedServices, final NiFiUser user, final Revision requestRevision, final VariableRegistryEntity requestEntity) {
 
         final Set<String> affectedProcessorIds = affectedProcessors == null ? Collections.emptySet() : affectedProcessors.stream()
-            .map(component -> component.getId())
-            .collect(Collectors.toSet());
+                .map(component -> component.getId())
+                .collect(Collectors.toSet());
         Map<String, Revision> processorRevisionMap = getRevisions(groupId, affectedProcessorIds);
 
         final Set<String> affectedServiceIds = affectedServices == null ? Collections.emptySet() : affectedServices.stream()
-            .map(component -> component.getId())
-            .collect(Collectors.toSet());
+                .map(component -> component.getId())
+                .collect(Collectors.toSet());
         Map<String, Revision> serviceRevisionMap = getRevisions(groupId, affectedServiceIds);
 
         // update the variable registry
@@ -1304,32 +1234,32 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // Stop processors
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getStopProcessorsStep(), "Stopping Processors",
-                        () -> stopProcessors(updateRequest, groupId, processorRevisionMap, pause));
+                            () -> stopProcessors(updateRequest, groupId, processorRevisionMap, pause));
 
                     // Update revision map because this will have modified the revisions of our components.
                     final Map<String, Revision> updatedProcessorRevisionMap = getRevisions(groupId, affectedProcessorIds);
 
                     // Disable controller services
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getDisableServicesStep(), "Disabling Controller Services",
-                        () -> disableControllerServices(updateRequest, groupId, serviceRevisionMap, pause));
+                            () -> disableControllerServices(updateRequest, groupId, serviceRevisionMap, pause));
 
                     // Update revision map because this will have modified the revisions of our components.
                     final Map<String, Revision> updatedServiceRevisionMap = getRevisions(groupId, affectedServiceIds);
 
                     // Apply the updates
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getApplyUpdatesStep(), "Applying updates to Variable Registry",
-                        () -> {
-                            final VariableRegistryEntity entity = serviceFacade.updateVariableRegistry(requestRevision, requestEntity.getVariableRegistry());
-                            updateRequest.setProcessGroupRevision(entity.getProcessGroupRevision());
-                        });
+                            () -> {
+                                final VariableRegistryEntity entity = serviceFacade.updateVariableRegistry(requestRevision, requestEntity.getVariableRegistry());
+                                updateRequest.setProcessGroupRevision(entity.getProcessGroupRevision());
+                            });
 
                     // Re-enable the controller services
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getEnableServicesStep(), "Re-enabling Controller Services",
-                        () -> enableControllerServices(updateRequest, groupId, updatedServiceRevisionMap, pause));
+                            () -> enableControllerServices(updateRequest, groupId, updatedServiceRevisionMap, pause));
 
                     // Restart processors
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getStartProcessorsStep(), "Restarting Processors",
-                        () -> startProcessors(updateRequest, groupId, updatedProcessorRevisionMap, pause));
+                            () -> startProcessors(updateRequest, groupId, updatedProcessorRevisionMap, pause));
 
                     // Set complete
                     updateRequest.setComplete(true);
@@ -1364,11 +1294,11 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     private void performUpdateVariableRegistryStep(final String groupId, final VariableRegistryUpdateRequest request, final VariableRegistryUpdateStep step,
-        final String stepDescription, final Runnable action) {
+                                                   final String stepDescription, final Runnable action) {
 
         if (request.isComplete()) {
             logger.info("In updating Variable Registry for Process Group with ID {}"
-                + ", skipping the following step because the request has completed already: {}", groupId, stepDescription);
+                    + ", skipping the following step because the request has completed already: {}", groupId, stepDescription);
             return;
         }
 
@@ -1391,7 +1321,7 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     private void stopProcessors(final VariableRegistryUpdateRequest updateRequest, final String processGroupId,
-        final Map<String, Revision> processorRevisions, final Pause pause) {
+                                final Map<String, Revision> processorRevisions, final Pause pause) {
 
         if (processorRevisions.isEmpty()) {
             return;
@@ -1442,12 +1372,12 @@ public class ProcessGroupResource extends ApplicationResource {
                                     final VariableRegistryUpdateStep updateStep) throws InterruptedException {
 
         final Set<String> affectedProcessorIds = affectedProcessors.stream()
-            .map(component -> component.getId())
-            .collect(Collectors.toSet());
+                .map(component -> component.getId())
+                .collect(Collectors.toSet());
 
         final Map<String, Revision> processorRevisionMap = getRevisions(groupId, affectedProcessorIds);
         final Map<String, RevisionDTO> processorRevisionDtoMap = processorRevisionMap.entrySet().stream().collect(
-            Collectors.toMap(Map.Entry::getKey, entry -> dtoFactory.createRevisionDTO(entry.getValue())));
+                Collectors.toMap(Map.Entry::getKey, entry -> dtoFactory.createRevisionDTO(entry.getValue())));
 
         final ScheduleComponentsEntity scheduleProcessorsEntity = new ScheduleComponentsEntity();
         scheduleProcessorsEntity.setComponents(processorRevisionDtoMap);
@@ -1457,7 +1387,7 @@ public class ProcessGroupResource extends ApplicationResource {
         URI scheduleGroupUri;
         try {
             scheduleGroupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId, null, originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId, null, originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -1496,16 +1426,16 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     private void activateControllerServices(final String groupId, final URI originalUri, final VariableRegistryUpdateRequest updateRequest,
-        final Pause pause, final Collection<AffectedComponentDTO> affectedServices, final ControllerServiceState desiredState, final VariableRegistryUpdateStep updateStep)
+                                            final Pause pause, final Collection<AffectedComponentDTO> affectedServices, final ControllerServiceState desiredState, final VariableRegistryUpdateStep updateStep)
             throws InterruptedException {
 
         final Set<String> affectedServiceIds = affectedServices.stream()
-            .map(component -> component.getId())
-            .collect(Collectors.toSet());
+                .map(component -> component.getId())
+                .collect(Collectors.toSet());
 
         final Map<String, Revision> serviceRevisionMap = getRevisions(groupId, affectedServiceIds);
         final Map<String, RevisionDTO> serviceRevisionDtoMap = serviceRevisionMap.entrySet().stream().collect(
-            Collectors.toMap(Map.Entry::getKey, entry -> dtoFactory.createRevisionDTO(entry.getValue())));
+                Collectors.toMap(Map.Entry::getKey, entry -> dtoFactory.createRevisionDTO(entry.getValue())));
 
         final ActivateControllerServicesEntity activateServicesEntity = new ActivateControllerServicesEntity();
         activateServicesEntity.setComponents(serviceRevisionDtoMap);
@@ -1515,7 +1445,7 @@ public class ProcessGroupResource extends ApplicationResource {
         URI controllerServicesUri;
         try {
             controllerServicesUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", null, originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", null, originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -1554,13 +1484,13 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     private void applyVariableRegistryUpdate(final String groupId, final URI originalUri, final VariableRegistryUpdateRequest updateRequest,
-        final VariableRegistryEntity updateEntity) throws InterruptedException, IOException {
+                                             final VariableRegistryEntity updateEntity) throws InterruptedException, IOException {
 
         // convert request accordingly
         URI applyUpdatesUri;
         try {
             applyUpdatesUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/process-groups/" + groupId + "/variable-registry", null, originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/process-groups/" + groupId + "/variable-registry", null, originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -1604,7 +1534,7 @@ public class ProcessGroupResource extends ApplicationResource {
      * @return the response entity
      */
     @SuppressWarnings("unchecked")
-    private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
+    protected <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {
             entity = nodeResponse.getClientResponse().readEntity(clazz);
@@ -1752,7 +1682,7 @@ public class ProcessGroupResource extends ApplicationResource {
             @ApiParam(
                     value = "The process group configuration details.",
                     required = true
-        ) final ProcessGroupEntity requestProcessGroupEntity) {
+            ) final ProcessGroupEntity requestProcessGroupEntity) {
 
         if (requestProcessGroupEntity == null || requestProcessGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Process group details must be specified.");
@@ -1882,7 +1812,7 @@ public class ProcessGroupResource extends ApplicationResource {
                         // To accomplish this, we call updateProcessGroupContents() passing 'true' for the updateSettings flag but null out the position.
                         flowSnapshot.getFlowContents().setPosition(null);
                         entity = serviceFacade.updateProcessGroupContents(newGroupRevision, newGroupId, versionControlInfo, flowSnapshot,
-                                getIdGenerationSeed().orElse(null), false, true, true, this::generateUuid);
+                                getIdGenerationSeed().orElse(null), false, true, true);
                     }
 
                     populateRemainingProcessGroupEntityContent(entity);
@@ -1893,8 +1823,6 @@ public class ProcessGroupResource extends ApplicationResource {
                 }
         );
     }
-
-
 
     private VersionedFlowSnapshot getFlowFromRegistry(final VersionControlInformationDTO versionControlInfo) {
         final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo, true);
@@ -1914,9 +1842,10 @@ public class ProcessGroupResource extends ApplicationResource {
 
 
     /**
-     * Retrieves all the processors in this NiFi.
+     * Retrieves all the child process groups of the process group with the given id.
      *
-     * @return A processorsEntity.
+     * @param groupId the parent process group id
+     * @return An entity containing all the child process group entities.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -2162,7 +2091,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
-    
+
     /**
      * Removes the specified process group reference.
      *
@@ -2322,7 +2251,6 @@ public class ProcessGroupResource extends ApplicationResource {
             }
 
 
-
             final Map<String, RevisionDTO> requestComponentsToSchedule = requestScheduleComponentsEntity.getComponents();
             final Map<String, Revision> requestComponentRevisions =
                     requestComponentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
@@ -2334,128 +2262,165 @@ public class ProcessGroupResource extends ApplicationResource {
             serviceFacade.scheduleComponents(parentGroup.getId(), state, requestComponentRevisions);
 
 
-
             Set<DropRequestDTO> allDropRequests = new HashSet();
+            Set<String> deletedGroupId = new HashSet();
 
-            //DROP all groupID request
-            for (ConnectionEntity connection : serviceFacade.getConnections(parentGroup.getId())) {
-                // ensure the id is the same across the cluster
-                if ((groupId.equals(connection.getDestinationGroupId())) || (groupId.equals(connection.getSourceGroupId()))) {
+            ProcessGroupStatusEntity status = serviceFacade.getProcessGroupStatus(parentGroup.getId(),true);
 
-                    String dropRequestId = generateUuid();
-                    allDropRequests.add(serviceFacade.createFlowFileDropRequest(connection.getId(), dropRequestId));
+            for (ProcessGroupEntity processGroupEntity :serviceFacade.getProcessGroups(parentGroup.getId())) {
+
+                ProcessGroupEntity connectionParentGroup = serviceFacade.getProcessGroup(serviceFacade.getProcessGroup(groupId).getComponent().getParentGroupId()) !=null ?
+                        serviceFacade.getProcessGroup(serviceFacade.getProcessGroup(groupId).getComponent().getParentGroupId()) :
+                        serviceFacade.getProcessGroup(processGroupEntity.getId());
+
+
+
+                Set<ConnectionEntity> parentConnections = serviceFacade.getConnections(connectionParentGroup.getId());
+
+                //get all parent connections
+                for (ConnectionEntity connection : parentConnections) {
+                    // ensure the id is the same across the cluster
+                    if ((processGroupEntity.getId().equals(connection.getDestinationGroupId())) || (processGroupEntity.getId().equals(connection.getSourceGroupId()))) {
+
+                        String dropRequestId = generateUuid();
+                        allDropRequests.add(serviceFacade.createFlowFileDropRequest(connection.getId(), dropRequestId));
+                    }
                 }
-            }
-            //delete all parent connections
-            for (ConnectionEntity connection : serviceFacade.getConnections(parentGroup.getId())) {
 
-                if ((groupId.equals(connection.getDestinationGroupId())) || (groupId.equals(connection.getSourceGroupId()))) {
-                    Revision rev = new Revision(connection.getRevision().getVersion(), connection.getRevision().getClientId(), connection.getComponent().getId());
-                    serviceFacade.deleteConnection(rev, connection.getId());
+
+                ProcessGroupFlowEntity fe = serviceFacade.getProcessGroupFlow(processGroupEntity.getId());
+                ProcessGroupFlowDTO entityTest = fe.getProcessGroupFlow();
+                FlowDTO flow = entityTest.getFlow();
+
+
+                //Drop all flow connections
+                for (ConnectionEntity connection : flow.getConnections()) {
+                    if ( (processGroupEntity.getId().equals(connection.getDestinationGroupId())) || (processGroupEntity.getId().equals(connection.getSourceGroupId()))) {
+                        final String dropRequestId = generateUuid();
+                        allDropRequests.add(serviceFacade.createFlowFileDropRequest(connection.getId(), dropRequestId));
+
+                    }
                 }
-            }
 
 
-            ProcessGroupFlowEntity fe = serviceFacade.getProcessGroupFlow(parentGroup.getId());
-            ProcessGroupFlowDTO entityTest = fe.getProcessGroupFlow();
-            FlowDTO flow = entityTest.getFlow();
-            //Drop all flow connections
-            for (ConnectionEntity connection : flow.getConnections()) {
-                if ((groupId.equals(connection.getDestinationGroupId())) || (groupId.equals(connection.getSourceGroupId()))) {
-                    final String dropRequestId = generateUuid();
-                    allDropRequests.add(serviceFacade.createFlowFileDropRequest(connection.getId(), dropRequestId));
+                Set<ConnectionEntity> deletedConnections = new HashSet();
+                Set<ConnectionEntity> notDeletedConnections = new HashSet();
+
+
+                //delete all parent connections
+                for (ConnectionEntity connection : parentConnections) {
+
+                    if ( !deletedConnections.contains(connection) &&
+                            ((processGroupEntity.getId().equals(connection.getDestinationGroupId())) || (processGroupEntity.getId().equals(connection.getSourceGroupId())))
+                    ) {
+                        Revision rev = new Revision(connection.getRevision().getVersion(), connection.getRevision().getClientId(), connection.getComponent().getId());
+                        serviceFacade.deleteConnection(rev, connection.getId());
+                        deletedConnections.add(connection);
+                    } else {
+
+                        notDeletedConnections.add(connection);
+                    }
                 }
-            }
 
-            //Delete All flow connections
-            for (ConnectionEntity connection : flow.getConnections()) {
-                if ((groupId.equals(connection.getDestinationGroupId())) || (groupId.equals(connection.getSourceGroupId()))) {
-                    Revision rev = new Revision(connection.getRevision().getVersion(), connection.getRevision().getClientId(), connection.getComponent().getId());
 
-                    serviceFacade.deleteConnection(rev, connection.getId());
+                //Delete all flow connections
+                for (ConnectionEntity connection : flow.getConnections()) {
+                    if ( !deletedConnections.contains(connection) && ((processGroupEntity.getId().equals(connection.getDestinationGroupId())) || (processGroupEntity.getId().equals(connection.getSourceGroupId())))) {
+                        Revision rev = new Revision(connection.getRevision().getVersion(), connection.getRevision().getClientId(), connection.getComponent().getId());
+                        serviceFacade.deleteConnection(rev, connection.getId());
+                        deletedConnections.add(connection);
+
+
+                    }else {
+
+                        notDeletedConnections.add(connection);
+
+                    }
                 }
-            }
-
-            //TODO wait and check to to see if all drops requests are compelete
-            Set<ControllerServiceEntity> controllers = serviceFacade.getControllerServices(parentGroup.getId(), true, true);
-            for (ControllerServiceEntity controller : controllers) {
-                if (parentGroup.getId().equals(controller.getParentGroupId())) {
-                    serviceFacade.verifyCanClearControllerServiceState(controller.getId());
-                    serviceFacade.clearControllerServiceState(controller.getId());
+                //TODO wait and check to to see if all drops requests are compelete
+                Set<ControllerServiceEntity> controllers = serviceFacade.getControllerServices(parentGroup.getId(), true, true);
+                for (ControllerServiceEntity controller : controllers) {
+                    if (processGroupEntity.getId().equals(controller.getParentGroupId())) {
+                        serviceFacade.verifyCanClearControllerServiceState(controller.getId());
+                        serviceFacade.clearControllerServiceState(controller.getId());
+                    }
                 }
-            }
 
 
-            for (PortEntity port : flow.getOutputPorts()) {
-                if (parentGroup.getId().equals(port.getComponent().getParentGroupId())) {
-                    Revision rev = new Revision(port.getRevision().getVersion(), port.getRevision().getClientId(), port.getComponent().getId());
-                    serviceFacade.deleteOutputPort(rev, port.getId());
+                for (PortEntity port : flow.getOutputPorts()) {
+                    if (processGroupEntity.getId().equals(port.getComponent().getParentGroupId())) {
+                        Revision rev = new Revision(port.getRevision().getVersion(), port.getRevision().getClientId(), port.getComponent().getId());
+                        serviceFacade.deleteOutputPort(rev, port.getId());
+                    }
                 }
-            }
 
-            for (PortEntity port : flow.getInputPorts()) {
-                if (parentGroup.getId().equals(port.getComponent().getParentGroupId())) {
-                    Revision rev = new Revision(port.getRevision().getVersion(), port.getRevision().getClientId(), port.getComponent().getId());
-                    serviceFacade.deleteInputPort(rev, port.getId());
+                for (PortEntity port : flow.getInputPorts()) {
+                    if (processGroupEntity.getId().equals(port.getComponent().getParentGroupId())) {
+                        Revision rev = new Revision(port.getRevision().getVersion(), port.getRevision().getClientId(), port.getComponent().getId());
+                        serviceFacade.deleteInputPort(rev, port.getId());
+                    }
                 }
-            }
 
-            for (FunnelEntity funnel : flow.getFunnels()) {
-                if (parentGroup.getId().equals(funnel.getComponent().getParentGroupId())) {
+                for (FunnelEntity funnel : flow.getFunnels()) {
+                    if (processGroupEntity.getId().equals(funnel.getComponent().getParentGroupId())) {
 
-                    Revision rev = new Revision(funnel.getRevision().getVersion(), funnel.getRevision().getClientId(), funnel.getComponent().getId());
-                    serviceFacade.deleteFunnel(rev, funnel.getId());
+                        Revision rev = new Revision(funnel.getRevision().getVersion(), funnel.getRevision().getClientId(), funnel.getComponent().getId());
+                        serviceFacade.deleteFunnel(rev, funnel.getId());
+                    }
                 }
-            }
 
 
-            for (RemoteProcessGroupEntity processorGroupEntity : flow.getRemoteProcessGroups()) {
-                if (parentGroup.getId().equals(processorGroupEntity.getComponent().getParentGroupId())) {
-                    Revision rev = new Revision(processorGroupEntity.getRevision().getVersion(), processorGroupEntity.getRevision().getClientId(), processorGroupEntity.getComponent().getId());
-                    serviceFacade.deleteRemoteProcessGroup(rev, processorGroupEntity.getId());
+                for (LabelEntity labelEntity : flow.getLabels()) {
+                    if (processGroupEntity.getId().equals(labelEntity.getComponent().getParentGroupId())) {
+                        Revision rev = new Revision(labelEntity.getRevision().getVersion(), labelEntity.getRevision().getClientId(), labelEntity.getComponent().getId());
+                        serviceFacade.deleteLabel(rev, labelEntity.getId());
+                    }
                 }
-            }
 
-            for (LabelEntity labelEntity : flow.getLabels()) {
-                if (parentGroup.getId().equals(labelEntity.getComponent().getParentGroupId())) {
-                    Revision rev = new Revision(labelEntity.getRevision().getVersion(), labelEntity.getRevision().getClientId(), labelEntity.getComponent().getId());
-                    serviceFacade.deleteLabel(rev, labelEntity.getId());
+                for (TemplateEntity templateEntity : serviceFacade.getTemplates()) {
+                    if (processGroupEntity.getId().equals(templateEntity.getTemplate().getGroupId())) {
+                        serviceFacade.deleteTemplate(templateEntity.getId());
+                    }
                 }
-            }
 
-            for (TemplateEntity templateEntity : serviceFacade.getTemplates()) {
-                if (parentGroup.getId().equals(templateEntity.getTemplate().getGroupId())) {
-                    serviceFacade.deleteTemplate(templateEntity.getId());
+
+                for (ControllerServiceEntity controller : controllers) {
+                    if (processGroupEntity.getId().equals(controller.getParentGroupId())) {
+                        Revision rev = new Revision(controller.getRevision().getVersion(), controller.getRevision().getClientId(), controller.getComponent().getId());
+                        serviceFacade.deleteControllerService(rev, controller.getId());
+                    }
                 }
-            }
-
-
-            for (ControllerServiceEntity controller : controllers) {
-                if (parentGroup.getId().equals(controller.getParentGroupId())) {
-                    Revision rev = new Revision(controller.getRevision().getVersion(), controller.getRevision().getClientId(), controller.getComponent().getId());
-                    serviceFacade.deleteControllerService(rev, controller.getId());
+                Set<ProcessorEntity> processorEntities = serviceFacade.getProcessors(parentGroup.getId(), includeDescendantGroups);
+                for (ProcessorEntity processor : processorEntities) {
+                    if (parentGroup.getId().equals(processor.getComponent().getParentGroupId())
+                            ||
+                            processGroupEntity.getId().equals(processor.getComponent().getId())
+                    ) {
+                        Revision rev = new Revision(processor.getRevision().getVersion(), processor.getRevision().getClientId(), processor.getComponent().getId());
+                        serviceFacade.deleteProcessor(rev, processor.getId());
+                    }
                 }
-            }
 
-
-            Set<ProcessorEntity> processorEntities = serviceFacade.getProcessors(parentGroup.getId(), includeDescendantGroups);
-            for (ProcessorEntity processor : processorEntities) {
-                if (parentGroup.getId().equals(processor.getComponent().getParentGroupId())) {
-                    Revision rev = new Revision(processor.getRevision().getVersion(), processor.getRevision().getClientId(), processor.getComponent().getId());
-                    serviceFacade.deleteProcessor(rev, processor.getId());
+                //Delete Processor Group
+                for (RemoteProcessGroupEntity processorGroupEntity : flow.getRemoteProcessGroups()) {
+                    if ( !deletedGroupId.contains(processGroupEntity.getId())
+                            &&
+                            processGroupEntity.getId().equals(processorGroupEntity.getComponent().getParentGroupId())) {
+                        Revision rev = new Revision(processorGroupEntity.getRevision().getVersion(), processorGroupEntity.getRevision().getClientId(), processorGroupEntity.getComponent().getId());
+                        serviceFacade.deleteRemoteProcessGroup(rev, processorGroupEntity.getId());
+                        deletedGroupId.add(processorGroupEntity.getId());
+                    }
                 }
+                Revision rev = new Revision(processGroupEntity.getRevision().getVersion(), processGroupEntity.getRevision().getClientId(), processGroupEntity.getComponent().getId());
+                serviceFacade.deleteProcessGroup(rev, processGroupEntity.getId());
+                deletedGroupId.add(processGroupEntity.getId());
             }
 
 
-            for (ProcessGroupEntity processorGroupEntity : flow.getProcessGroups()) {
-                if (parentGroup.getId().equals(processorGroupEntity.getComponent().getParentGroupId()) && !groupId.equals(parentGroup.getComponent().getParentGroupId()) ) {
-                    Revision rev = new Revision(processorGroupEntity.getRevision().getVersion(), processorGroupEntity.getRevision().getClientId(), processorGroupEntity.getComponent().getId());
-                    serviceFacade.deleteProcessGroup(rev, processorGroupEntity.getId());
-                }
-            }
-
-            //Do not delete root Process Group
-            if (!groupId.equals(parentGroup.getComponent().getParentGroupId())){
+            //Do not delete root Process Group check if process group was already deleted
+            if (!groupId.equals(parentGroup.getComponent().getParentGroupId())
+                    && !deletedGroupId.contains(groupId))
+            {
                 Revision processorRevision = new Revision(parentGroup.getRevision().getVersion(),
                         parentGroup.getRevision().getClientId(),
                         parentGroup.getComponent().getId());
@@ -2464,7 +2429,7 @@ public class ProcessGroupResource extends ApplicationResource {
                         parentGroup,
                         processorRevision,
                         lookup -> {
-                            final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(parentGroup.getId());
+                            final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(groupId);
 
                             // ensure write to this process group anEencapsulated components
                             authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, true, false, false);
@@ -2501,6 +2466,227 @@ public class ProcessGroupResource extends ApplicationResource {
 
         return generateOkResponse(parentGroup).build();
     }
+
+
+    /**
+     * Drops all request and empties flow file queue in process group
+     *
+     * @param httpServletRequest request
+     * @param groupId  The id of the process group to be removed.
+     * @param includeDescendantGroups include children
+     * @param disconnectedNodeAcknowledged for clustering
+     * @return response.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/flow-drop-request")
+    @ApiOperation(
+            value = "Deletes a processors in and children in process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}/processors"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}/processors"),
+                    @Authorization(value = "Read - any referenced Controller Services by any encapsulated components - /controller-services/{uuid}"),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response flowDropRequestProcessorGroups(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam("Whether or not to include processors from descendant process groups")
+            @QueryParam("includeDescendantGroups")
+            @DefaultValue("true") boolean includeDescendantGroups,
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED)
+            @DefaultValue("false")
+            final Boolean disconnectedNodeAcknowledged
+    )
+    {
+        final  ProcessGroupEntity parentGroup = serviceFacade.getProcessGroup(serviceFacade.getProcessGroup(groupId).getComponent().getParentGroupId()) !=null ?
+                serviceFacade.getProcessGroup(serviceFacade.getProcessGroup(groupId).getComponent().getParentGroupId()) :
+                serviceFacade.getProcessGroup(groupId);
+        try {
+            ScheduleComponentsEntity requestScheduleComponentsEntity = new ScheduleComponentsEntity();
+            requestScheduleComponentsEntity.setState(STATE_STOPPED);
+            final ScheduledState state;
+
+            if (isReplicateRequest()) {
+                return replicate(HttpMethod.PUT, requestScheduleComponentsEntity);
+            } else if (isDisconnectedFromCluster()) {
+                verifyDisconnectedNodeModification(requestScheduleComponentsEntity.isDisconnectedNodeAcknowledged());
+            }
+
+
+            if (requestScheduleComponentsEntity.getState() == null) {
+                throw new IllegalArgumentException("The scheduled state must be specified.");
+            } else {
+                if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                    state = ScheduledState.STOPPED;
+                } else {
+                    try {
+                        state = ScheduledState.valueOf(requestScheduleComponentsEntity.getState());
+                    } catch (final IllegalArgumentException iae) {
+                        throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
+                                StringUtils.join(Stream.of(ScheduledState.RUNNING, ScheduledState.STOPPED, STATE_ENABLED, ScheduledState.DISABLED), ", ")));
+                    }
+                }
+            }
+
+            // ensure its a supported scheduled state
+            if (ScheduledState.STARTING.equals(state) || ScheduledState.STOPPING.equals(state)) {
+                throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
+                        StringUtils.join(Stream.of(ScheduledState.RUNNING, ScheduledState.STOPPED, STATE_ENABLED, ScheduledState.DISABLED), ", ")));
+            }
+
+            // if the components are not specified, gather all components and their current revision
+            if (requestScheduleComponentsEntity.getComponents() == null) {
+                final Supplier<Predicate<ProcessorNode>> getProcessorFilter = () -> {
+                    if (ScheduledState.RUNNING.equals(state)) {
+                        return ProcessGroup.START_PROCESSORS_FILTER;
+                    } else if (ScheduledState.STOPPED.equals(state)) {
+                        if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                            return ProcessGroup.ENABLE_PROCESSORS_FILTER;
+                        } else {
+                            return ProcessGroup.STOP_PROCESSORS_FILTER;
+                        }
+                    } else {
+                        return ProcessGroup.DISABLE_PROCESSORS_FILTER;
+                    }
+                };
+
+                final Supplier<Predicate<Port>> getPortFilter = () -> {
+                    if (ScheduledState.RUNNING.equals(state)) {
+                        return ProcessGroup.START_PORTS_FILTER;
+                    } else if (ScheduledState.STOPPED.equals(state)) {
+                        if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                            return ProcessGroup.ENABLE_PORTS_FILTER;
+                        } else {
+                            return ProcessGroup.STOP_PORTS_FILTER;
+                        }
+                    } else {
+                        return ProcessGroup.DISABLE_PORTS_FILTER;
+                    }
+                };
+
+
+                // get the current revisions for the components being updated
+                final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(parentGroup.getId(), group -> {
+                    final Set<String> componentIds = new HashSet<>();
+
+                    // ensure authorized for each processor we will attempt to schedule
+                    group.findAllProcessors().stream()
+                            .filter(getProcessorFilter.get())
+                            //    .filter(processor -> OperationAuthorizable.isOperationAuthorized(processor, authorizer, NiFiUserUtils.getNiFiUser()))
+                            .forEach(processor -> {
+                                componentIds.add(processor.getIdentifier());
+                            });
+
+                    // ensure authorized for each input port we will attempt to schedule
+                    group.findAllInputPorts().stream()
+                            .filter(getPortFilter.get())
+                            //  .filter(inputPort -> OperationAuthorizable.isOperationAuthorized(inputPort, authorizer, NiFiUserUtils.getNiFiUser()))
+                            .forEach(inputPort -> {
+                                componentIds.add(inputPort.getIdentifier());
+                            });
+
+                    // ensure authorized for each output port we will attempt to schedule
+                    group.findAllOutputPorts().stream()
+                            .filter(getPortFilter.get())
+                            //.filter(outputPort -> OperationAuthorizable.isOperationAuthorized(outputPort, authorizer, NiFiUserUtils.getNiFiUser()))
+                            .forEach(outputPort -> {
+                                componentIds.add(outputPort.getIdentifier());
+                            });
+
+                    return componentIds;
+                });
+
+                // build the component mapping
+                final Map<String, RevisionDTO> componentsToSchedule = new HashMap<>();
+                revisions.forEach(revision -> {
+                    final RevisionDTO dto = new RevisionDTO();
+                    dto.setClientId(revision.getClientId());
+                    dto.setVersion(revision.getVersion());
+                    componentsToSchedule.put(revision.getComponentId(), dto);
+                });
+
+                // set the components and their current revision
+                requestScheduleComponentsEntity.setComponents(componentsToSchedule);
+            }
+
+
+
+            final Map<String, RevisionDTO> requestComponentsToSchedule = requestScheduleComponentsEntity.getComponents();
+            final Map<String, Revision> requestComponentRevisions =
+                    requestComponentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+            final Set<Revision> requestRevisions = new HashSet<>(requestComponentRevisions.values());
+
+
+            //STOP all components
+            serviceFacade.verifyScheduleComponents(parentGroup.getId(), state, requestComponentRevisions.keySet());
+            serviceFacade.scheduleComponents(parentGroup.getId(), state, requestComponentRevisions);
+
+
+
+            Set<DropRequestDTO> allDropRequests = new HashSet();
+
+            for (ProcessGroupEntity processGroupEntity :serviceFacade.getProcessGroups(parentGroup.getId())) {
+
+                ProcessGroupEntity connectionParentGroup = serviceFacade.getProcessGroup(serviceFacade.getProcessGroup(groupId).getComponent().getParentGroupId()) != null ?
+                        serviceFacade.getProcessGroup(serviceFacade.getProcessGroup(groupId).getComponent().getParentGroupId()) :
+                        serviceFacade.getProcessGroup(processGroupEntity.getId());
+
+
+                Set<ConnectionEntity> parentConnections = serviceFacade.getConnections(connectionParentGroup.getId());
+
+                //get all parent connections
+                for (ConnectionEntity connection : parentConnections) {
+                    // ensure the id is the same across the cluster
+                    if ((processGroupEntity.getId().equals(connection.getDestinationGroupId())) || (processGroupEntity.getId().equals(connection.getSourceGroupId()))) {
+
+                        String dropRequestId = generateUuid();
+                        allDropRequests.add(serviceFacade.createFlowFileDropRequest(connection.getId(), dropRequestId));
+                    }
+                }
+
+
+                ProcessGroupFlowEntity fe = serviceFacade.getProcessGroupFlow(processGroupEntity.getId());
+                ProcessGroupFlowDTO entityTest = fe.getProcessGroupFlow();
+                FlowDTO flow = entityTest.getFlow();
+
+
+                //Drop all flow connections
+                for (ConnectionEntity connection : flow.getConnections()) {
+                    if ((processGroupEntity.getId().equals(connection.getDestinationGroupId())) || (processGroupEntity.getId().equals(connection.getSourceGroupId()))) {
+                        final String dropRequestId = generateUuid();
+                        allDropRequests.add(serviceFacade.createFlowFileDropRequest(connection.getId(), dropRequestId));
+
+                    }
+                }
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to drop flow files for Group with ID " + groupId, e);
+        } finally {
+            // clear the authentication token
+            SecurityContextHolder.getContext().setAuthentication(null);
+        }
+
+        return generateOkResponse(parentGroup).build();
+    }
+
+
 
     // -----------
     // input ports
@@ -3787,7 +3973,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // create the template and generate the json
                     final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(), instantiateTemplateRequestEntity.getOriginY(),
-                        instantiateTemplateRequestEntity.getEncodingVersion(), snippet, getIdGenerationSeed().orElse(null));
+                            instantiateTemplateRequestEntity.getEncodingVersion(), snippet, getIdGenerationSeed().orElse(null));
 
                     final FlowDTO flowSnippet = entity.getFlow();
 
@@ -3807,29 +3993,29 @@ public class ProcessGroupResource extends ApplicationResource {
 
     private void verifyPublicPortUniqueness(FlowSnippetDTO snippet) {
         snippet.getInputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.getAllowRemoteAccess()))
-            .forEach(portDTO -> {
-                try {
-                    serviceFacade.verifyPublicInputPortUniqueness(portDTO.getId(), portDTO.getName());
-                } catch (IllegalStateException e) {
-                    throw toPublicPortUniqueConstraintViolationException("input", portDTO);
-                }
-            });
+                .forEach(portDTO -> {
+                    try {
+                        serviceFacade.verifyPublicInputPortUniqueness(portDTO.getId(), portDTO.getName());
+                    } catch (IllegalStateException e) {
+                        throw toPublicPortUniqueConstraintViolationException("input", portDTO);
+                    }
+                });
 
         snippet.getOutputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.getAllowRemoteAccess()))
-            .forEach(portDTO -> {
-                try {
-                    serviceFacade.verifyPublicOutputPortUniqueness(portDTO.getId(), portDTO.getName());
-                } catch (IllegalStateException e) {
-                    throw toPublicPortUniqueConstraintViolationException("output", portDTO);
-                }
-            });
+                .forEach(portDTO -> {
+                    try {
+                        serviceFacade.verifyPublicOutputPortUniqueness(portDTO.getId(), portDTO.getName());
+                    } catch (IllegalStateException e) {
+                        throw toPublicPortUniqueConstraintViolationException("output", portDTO);
+                    }
+                });
 
         snippet.getProcessGroups().forEach(processGroupDTO -> verifyPublicPortUniqueness(processGroupDTO.getContents()));
     }
 
     private IllegalStateException toPublicPortUniqueConstraintViolationException(final String portType, final PortDTO portDTO) {
         return new IllegalStateException(String.format("The %s port [%s] named '%s' will violate the public port unique constraint." +
-            " Rename the existing port name, or the one in the template to instantiate the template in this flow.", portType, portDTO.getId(), portDTO.getName()));
+                " Rename the existing port name, or the one in the template to instantiate the template in this flow.", portType, portDTO.getId(), portDTO.getName()));
     }
 
     // ---------
@@ -4249,6 +4435,278 @@ public class ProcessGroupResource extends ApplicationResource {
         );
     }
 
+    /**
+     * Initiates the request to replace the Process Group with the given ID with the Process Group in the given import entity
+     *
+     * @param groupId          The id of the process group to replace
+     * @param importEntity     A request entity containing revision info and the process group to replace with
+     * @return A ProcessGroupReplaceRequestEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/replace-requests")
+    @ApiOperation(
+            value = "Initiate the Replace Request of a Process Group with the given ID",
+            response = ProcessGroupReplaceRequestEntity.class,
+            notes = "This will initiate the action of replacing a process group with the given process group. This can be a lengthy "
+                    + "process, as it will stop any Processors and disable any Controller Services necessary to perform the action and then restart them. As a result, "
+                    + "the endpoint will immediately return a ProcessGroupReplaceRequestEntity, and the process of replacing the flow will occur "
+                    + "asynchronously in the background. The client may then periodically poll the status of the request by issuing a GET request to "
+                    + "/process-groups/replace-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to "
+                    + "/process-groups/replace-requests/{requestId}. " + NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}"),
+                    @Authorization(value = "Write - /process-groups/{uuid}"),
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components"),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components"),
+                    @Authorization(value = "Write - if the template contains any restricted components - /restricted-components"),
+                    @Authorization(value = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
+            }
+    )
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response initiateReplaceProcessGroup(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
+                                                @ApiParam(value = "The process group replace request entity", required = true) final ProcessGroupImportEntity importEntity) {
+        if (importEntity == null) {
+            throw new IllegalArgumentException("Process Group Import Entity is required");
+        }
+
+        // replacing a flow under version control is not permitted via import. Versioned flows have additional requirements to allow
+        // them only to be replaced by a different version of the same flow.
+        if (serviceFacade.isAnyProcessGroupUnderVersionControl(groupId)) {
+            throw new IllegalStateException("Cannot replace a Process Group via import while it or its descendants are under Version Control.");
+        }
+
+        final VersionedFlowSnapshot versionedFlowSnapshot = importEntity.getVersionedFlowSnapshot();
+        if (versionedFlowSnapshot == null) {
+            throw new IllegalArgumentException("Versioned Flow Snapshot must be supplied");
+        }
+
+        // remove any registry-specific versioning content which could be present if the flow was exported from registry
+        versionedFlowSnapshot.setFlow(null);
+        versionedFlowSnapshot.setBucket(null);
+        versionedFlowSnapshot.setSnapshotMetadata(null);
+        sanitizeRegistryInfo(versionedFlowSnapshot.getFlowContents());
+
+        return initiateFlowUpdate(groupId, importEntity, true, "replace-requests",
+                "/nifi-api/process-groups/" + groupId + "/flow-contents", importEntity::getVersionedFlowSnapshot);
+    }
+
+    /**
+     * Recursively clear the registry info in the given versioned process group and all nested versioned process groups
+     *
+     * @param versionedProcessGroup the process group to sanitize
+     */
+    private void sanitizeRegistryInfo(final VersionedProcessGroup versionedProcessGroup) {
+        versionedProcessGroup.setVersionedFlowCoordinates(null);
+
+        for (final VersionedProcessGroup innerVersionedProcessGroup : versionedProcessGroup.getProcessGroups()) {
+            sanitizeRegistryInfo(innerVersionedProcessGroup);
+        }
+    }
+
+    /**
+     * Replace the Process Group contents with the given ID with the specified Process Group contents.
+     *
+     * This is the endpoint used in a cluster update replication scenario.
+     *
+     * @param groupId          The id of the process group to replace
+     * @param importEntity     A request entity containing revision info and the process group to replace with
+     * @return A ProcessGroupImportEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/flow-contents")
+    @ApiOperation(
+            value = "Replace Process Group contents with the given ID with the specified Process Group contents",
+            response = ProcessGroupImportEntity.class,
+            notes = "This endpoint is used for replication within a cluster, when replacing a flow with a new flow. It expects that the flow being"
+                    + "replaced is not under version control and that the given snapshot will not modify any Processor that is currently running "
+                    + "or any Controller Service that is enabled. "
+                    + NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}"),
+                    @Authorization(value = "Write - /process-groups/{uuid}")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response replaceProcessGroup(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
+                                        @ApiParam(value = "The process group replace request entity.", required = true) final ProcessGroupImportEntity importEntity) {
+        // Verify the request
+        if (importEntity == null) {
+            throw new IllegalArgumentException("Process Group Import Entity is required");
+        }
+
+        final RevisionDTO revisionDto = importEntity.getProcessGroupRevision();
+        if (revisionDto == null) {
+            throw new IllegalArgumentException("Process Group Revision must be specified.");
+        }
+
+        final VersionedFlowSnapshot requestFlowSnapshot = importEntity.getVersionedFlowSnapshot();
+        if (requestFlowSnapshot == null) {
+            throw new IllegalArgumentException("Versioned Flow Snapshot must be supplied.");
+        }
+
+        // Perform the request
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, importEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(importEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        final Revision requestRevision = getRevision(importEntity.getProcessGroupRevision(), groupId);
+        return withWriteLock(
+                serviceFacade,
+                importEntity,
+                requestRevision,
+                lookup -> {
+                    final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+                    final Authorizable processGroup = groupAuthorizable.getAuthorizable();
+                    processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> {
+                    // We do not enforce that the Process Group is 'not dirty' because at this point,
+                    // the client has explicitly indicated the dataflow that the Process Group should
+                    // provide and provided the Revision to ensure that they have the most up-to-date
+                    // view of the Process Group.
+                    serviceFacade.verifyCanUpdate(groupId, requestFlowSnapshot, true, false);
+                },
+                (revision, entity) -> {
+                    final ProcessGroupEntity updatedGroup =
+                            performUpdateFlow(groupId, revision, importEntity, entity.getVersionedFlowSnapshot(),
+                                    getIdGenerationSeed().orElse(null), false, true);
+
+                    // response to replication request is an entity with revision info but no versioned flow snapshot
+                    final ProcessGroupImportEntity responseEntity = new ProcessGroupImportEntity();
+                    responseEntity.setProcessGroupRevision(updatedGroup.getRevision());
+
+                    return generateOkResponse(responseEntity).build();
+                });
+    }
+
+    /**
+     * Retrieve a request to replace a Process Group by request ID.
+     *
+     * @param replaceRequestId  The ID of the replace request
+     * @return A ProcessGroupReplaceRequestEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("replace-requests/{id}")
+    @ApiOperation(
+            value = "Returns the Replace Request with the given ID",
+            response = ProcessGroupReplaceRequestEntity.class,
+            notes = "Returns the Replace Request with the given ID. Once a Replace Request has been created by performing a POST to /process-groups/{id}/replace-requests, "
+                    + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
+                    + "current state of the request, and any failures. "
+                    + NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                    @Authorization(value = "Only the user that submitted the request can get it")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getReplaceProcessGroupRequest(
+            @ApiParam("The ID of the Replace Request") @PathParam("id") final String replaceRequestId) {
+        return retrieveFlowUpdateRequest("replace-requests", replaceRequestId);
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("replace-requests/{id}")
+    @ApiOperation(
+            value = "Deletes the Replace Request with the given ID",
+            response = ProcessGroupReplaceRequestEntity.class,
+            notes = "Deletes the Replace Request with the given ID. After a request is created via a POST to /process-groups/{id}/replace-requests, it is expected "
+                    + "that the client will properly clean up the request by DELETE'ing it, once the Replace process has completed. If the request is deleted before the request "
+                    + "completes, then the Replace request will finish the step that it is currently performing and then will cancel any subsequent steps. "
+                    + NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                    @Authorization(value = "Only the user that submitted the request can remove it")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response deleteReplaceProcessGroupRequest(
+            @ApiParam(value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.", required = false)
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam("The ID of the Update Request") @PathParam("id") final String replaceRequestId) {
+        return deleteFlowUpdateRequest("replace-requests", replaceRequestId, disconnectedNodeAcknowledged.booleanValue());
+    }
+
+    /**
+     * Perform actual flow update of the specified flow. This is used for the initial flow update and replication updates.
+     */
+    @Override
+    protected ProcessGroupEntity performUpdateFlow(final String groupId, final Revision revision, final ProcessGroupImportEntity requestEntity,
+                                                   final VersionedFlowSnapshot flowSnapshot, final String idGenerationSeed,
+                                                   final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
+        logger.info("Replacing Process Group with ID {} with imported Process Group with ID {}", groupId, flowSnapshot.getFlowContents().getIdentifier());
+
+        // Update Process Group to the new flow (including name) and update variable registry with any Variables that were added or removed
+        return serviceFacade.updateProcessGroupContents(revision, groupId, null, flowSnapshot, idGenerationSeed, verifyNotModified,
+                true, updateDescendantVersionedFlows);
+    }
+
+    /**
+     * Create the entity that is used for update flow replication. The initial replace request entity can be re-used for the replication request.
+     */
+    @Override
+    protected Entity createReplicateUpdateFlowEntity(final Revision revision, final ProcessGroupImportEntity requestEntity,
+                                                     final VersionedFlowSnapshot flowSnapshot) {
+        return requestEntity;
+    }
+
+    /**
+     * Create the entity that captures the status and result of a replace request
+     *
+     * @return a new instance of a ProcessGroupReplaceRequestEntity
+     */
+    @Override
+    protected ProcessGroupReplaceRequestEntity createUpdateRequestEntity() {
+        return new ProcessGroupReplaceRequestEntity();
+    }
+
+    /**
+     * Finalize a completed update request for an existing replace request. This is used when retrieving and deleting a replace request.
+     *
+     * A completed request will contain the updated VersionedFlowSnapshot
+     *
+     * @param requestEntity     the request entity to finalize
+     */
+    @Override
+    protected void finalizeCompletedUpdateRequest(final ProcessGroupReplaceRequestEntity requestEntity) {
+        final ProcessGroupReplaceRequestDTO updateRequestDto = requestEntity.getRequest();
+        if (updateRequestDto.isComplete()) {
+            final VersionedFlowSnapshot versionedFlowSnapshot =
+                    serviceFacade.getCurrentFlowSnapshotByGroupId(updateRequestDto.getProcessGroupId());
+            requestEntity.setVersionedFlowSnapshot(versionedFlowSnapshot);
+        }
+    }
+
     private static class UpdateVariableRegistryRequestWrapper extends Entity {
         private final Set<AffectedComponentEntity> allAffectedComponents;
         private final List<AffectedComponentDTO> activeAffectedProcessors;
@@ -4282,10 +4740,6 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     // setters
-
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
-        this.serviceFacade = serviceFacade;
-    }
 
     public void setProcessorResource(ProcessorResource processorResource) {
         this.processorResource = processorResource;
@@ -4323,11 +4777,21 @@ public class ProcessGroupResource extends ApplicationResource {
         this.controllerServiceResource = controllerServiceResource;
     }
 
-    public void setAuthorizer(Authorizer authorizer) {
-        this.authorizer = authorizer;
-    }
+    private static class DropEntity extends Entity {
+        final String connectionId;
+        final String dropRequestId;
 
-    public void setDtoFactory(DtoFactory dtoFactory) {
-        this.dtoFactory = dtoFactory;
+        public DropEntity(String connectionId, String dropRequestId) {
+            this.connectionId = connectionId;
+            this.dropRequestId = dropRequestId;
+        }
+
+        public String getConnectionId() {
+            return connectionId;
+        }
+
+        public String getDropRequestId() {
+            return dropRequestId;
+        }
     }
 }
