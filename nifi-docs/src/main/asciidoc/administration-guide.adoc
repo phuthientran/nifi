@@ -2453,6 +2453,7 @@ documentation of the proxy for guidance for your deployment environment and use 
 ...
 <Location "/my-nifi">
     ...
+<<<<<<< Upstream, based on origin/master
 	SSLEngine On
 	SSLCertificateFile /path/to/proxy/certificate.crt
 	SSLCertificateKeyFile /path/to/proxy/key.key
@@ -2466,6 +2467,66 @@ documentation of the proxy for guidance for your deployment environment and use 
 	ProxyPass https://nifi-host:8443
 	ProxyPassReverse https://nifi-host:8443
 	...
+=======
+    SSLEngine On
+    SSLCertificateFile /path/to/proxy/certificate.crt
+    SSLCertificateKeyFile /path/to/proxy/key.key
+    SSLCACertificateFile /path/to/ca/certificate.crt
+    SSLVerifyClient require
+    RequestHeader add X-ProxyScheme "https"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "443"
+    RequestHeader add X-ProxyContextPath "/my-nifi"
+    RequestHeader add X-ProxiedEntitiesChain "<%{SSL_CLIENT_S_DN}>"
+    ProxyPass https://nifi-host:8443
+    ProxyPassReverse https://nifi-host:8443
+    ...
+</Location>
+...
+....
+
+If accessing multiple cluster nodes from behind a proxy is necessary, `nifi.web.context.root` must be set (See <<web-properties>>). Then, each context path of the different
+NiFi webapps on different nodes should have a separate `<Location>` entry similar to the one above. For example:
+
+....
+...
+<Location "/node1/nifi">
+    ...
+    RequestHeader add X-ProxyScheme "http"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "proxy-port"
+    ProxyPass http://node1-host[:port]/node1/nifi
+    ProxyPassReverse http://node1-host[:port]/node1/nifi
+    ...
+</Location>
+<Location "/node1/nifi-api">
+    ...
+    RequestHeader add X-ProxyScheme "http"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "proxy-port"
+    ProxyPass http://node1-host[:port]/node1/nifi-api
+    ProxyPassReverse http://node1-host[:port]/node1/nifi-api
+    ...
+</Location>
+...
+<Location "/node2/nifi">
+    ...
+    RequestHeader add X-ProxyScheme "http"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "proxy-port"
+    ProxyPass http://node2-host[:port]/node2/nifi
+    ProxyPassReverse http://node2-host[:port]/node2/nifi
+    ...
+</Location>
+<Location "/node2/nifi-api">
+    ...
+    RequestHeader add X-ProxyScheme "http"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "proxy-port"
+    ProxyPass http://node2-host[:port]/node2/nifi-api
+    ProxyPassReverse http://node2-host[:port]/node2/nifi-api
+    ...
+>>>>>>> 6910a4c Minor correction to documentation related to nifi.web.context.root
 </Location>
 ...
 ....

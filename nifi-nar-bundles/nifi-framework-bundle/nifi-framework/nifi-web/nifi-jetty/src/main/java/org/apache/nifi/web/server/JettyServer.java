@@ -669,15 +669,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private String getWebContextRoot() {
         // Place all webapps under the same root context to allow NiFi UI to continue working
         // for the hardcoded contexts, e.g. /nifi, on different nodes in a cluster setup
-        // to work with different 
+        // to work with different
         String contextRoot = props.getWebContextRoot();
         if (contextRoot != null && contextRoot.length() > 0) {
             // Remove the ending slash if present
-<<<<<<< Upstream, based on origin/master
             contextRoot = contextRoot.replaceAll("(.+)/$", "$1");
-=======
-            contextRoot = contextRoot.replaceAll("(.*)/$", "$1");
->>>>>>> 3539e72 Correct removing trailing slash in context root
         }
         return (contextRoot != null ? contextRoot : "");
     }
@@ -1301,7 +1297,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // log the ui location
             logger.info("NiFi has started. The UI is available at the following URLs:");
             for (final String url : urls) {
-                logger.info(String.format("%s/nifi", url));
+                logger.info(String.format("%s%s/nifi", url, getWebContextRoot()));
             }
         }
     }
@@ -1327,12 +1323,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     public void stop() {
         try {
             server.stop();
-<<<<<<< Upstream, based on origin/master
-=======
             if (webApiScanner != null) {
                 webApiScanner.stop();
             }
->>>>>>> 74ddcf2 Check if dev web api file scanner is set beforing starting and stopping it
         } catch (Exception ex) {
             logger.warn("Failed to stop web server", ex);
         }
