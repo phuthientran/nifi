@@ -36,7 +36,7 @@
         <repository>
             <id>splunk</id>
             <name>Splunk Artifactory</name>
-            <url>https://splunk.artifactoryonline.com/splunk/ext-releases-local/</url>
+            <url>https://repo.spring.io/plugins-release/</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
