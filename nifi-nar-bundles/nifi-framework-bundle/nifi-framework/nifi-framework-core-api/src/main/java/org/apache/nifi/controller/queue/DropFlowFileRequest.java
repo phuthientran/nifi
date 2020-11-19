@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.queue;
 
+import java.util.Collections;
 import java.util.List;
 
 public class DropFlowFileRequest implements DropFlowFileStatus {
@@ -90,14 +91,14 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
     }
 
     public List<String> getFlowFileUuids() {
-		return flowFileUuids;
-	}
+        return flowFileUuids;
+    }
 
-	public void setFlowFileUuids(final List<String> flowFileUuids) {
-		this.flowFileUuids = flowFileUuids;
-	}
+    public void setFlowFileUuids(final List<String> flowFileUuids) {
+        this.flowFileUuids = (flowFileUuids == null ? Collections.EMPTY_LIST : flowFileUuids);
+    }
 
-	public synchronized void setState(final DropFlowFileState state) {
+    public synchronized void setState(final DropFlowFileState state) {
         setState(state, null);
     }
 

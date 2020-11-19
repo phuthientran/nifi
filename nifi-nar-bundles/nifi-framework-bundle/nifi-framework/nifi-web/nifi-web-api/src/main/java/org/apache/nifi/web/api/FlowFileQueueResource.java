@@ -585,8 +585,8 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Creates a request to delete specific flowfiles in the queue of the specified connection.
      *
      * @param httpServletRequest request
-     * @param id                 The id of the connection
-     * @param flowFileUuids      The uuids of FlowFiles to be deleted that are included in the request body
+     * @param id The id of the connection
+     * @param flowFileUuids The uuids of FlowFiles to be deleted that are included in the request body
      * @return A dropRequestEntity
      */
     @POST
@@ -639,12 +639,12 @@ public class FlowFileQueueResource extends ApplicationResource {
                     // ensure the id is the same across the cluster
                     final String dropRequestId = generateUuid();
 
-                    // submit the drop request
+                    // submit drop request
                     final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(
-                    		connectionEntity.getId(), dropRequestId, flowFileUuids);
+                            connectionEntity.getId(), dropRequestId, flowFileUuids);
                     dropRequest.setUri(generateResourceUri("flowfile-queues", connectionEntity.getId(), "drop-requests", dropRequest.getId()));
 
-                    // create the response entity
+                    // create response entity
                     final DropRequestEntity entity = new DropRequestEntity();
                     entity.setDropRequest(dropRequest);
 

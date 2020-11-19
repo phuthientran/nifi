@@ -86,8 +86,8 @@ import java.util.stream.Collectors;
         description = "Endpoint for accessing data flow provenance."
 )
 public class ProvenanceEventResource extends ApplicationResource {
-	
-	private static final Logger logger = LoggerFactory.getLogger(ProvenanceEventResource.class);
+    
+    private static final Logger logger = LoggerFactory.getLogger(ProvenanceEventResource.class);
 
     private NiFiServiceFacade serviceFacade;
 
@@ -438,10 +438,10 @@ public class ProvenanceEventResource extends ApplicationResource {
                     required = true
             ) final List<SubmitReplayRequestEntity> replayRequestEntities) {
 
-    	for (SubmitReplayRequestEntity entity: replayRequestEntities) {
-    		// submit replay utilizing existing code and cluster handling
-    		this.submitReplay(httpServletRequest, entity);
-    	}
+        for (SubmitReplayRequestEntity entity: replayRequestEntities) {
+            // submit replay utilizing existing code and cluster handling
+            this.submitReplay(httpServletRequest, entity);
+        }
     }
  
     /**
@@ -469,85 +469,85 @@ public class ProvenanceEventResource extends ApplicationResource {
                     @Authorization(value = "Write Component Data - /data/{component-type}/{uuid}")
             }
     )
-	public Response submitComponentReplay(@Context final HttpServletRequest httpServletRequest,
-			@ApiParam(
-					value = "The component search parameters.", 
-					required = true
-			) final SubmitComponentReplayRequestEntity replayRequestEntity) 
-					throws JsonProcessingException, RestClientException, URISyntaxException {
+    public Response submitComponentReplay(@Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The component search parameters.", 
+                    required = true
+                    ) final SubmitComponentReplayRequestEntity replayRequestEntity) 
+                            throws JsonProcessingException, RestClientException, URISyntaxException {
 
-		if (replayRequestEntity == null || replayRequestEntity.getComponentId() == null
-				|| replayRequestEntity.getStartDate() == null || replayRequestEntity.getEndDate() == null
-				|| replayRequestEntity.getMaxResults() == null) {
-			throw new IllegalArgumentException("Component replay request entity and required fields cannot be null "
-					+ "[componentId, startDate, endDate, maxResults] required.");
-		}
+        if (replayRequestEntity == null || replayRequestEntity.getComponentId() == null
+                || replayRequestEntity.getStartDate() == null || replayRequestEntity.getEndDate() == null
+                || replayRequestEntity.getMaxResults() == null) {
+            throw new IllegalArgumentException("Component replay request entity and required fields cannot be null "
+                    + "[componentId, startDate, endDate, maxResults] required.");
+        }
 
-		// create provenance request to query data provenance for dropped files
-		ProvenanceRequestDTO provenanceRequest = new ProvenanceRequestDTO();
-		provenanceRequest.setClusterNodeId(replayRequestEntity.getClusterNodeId());
-		provenanceRequest.setStartDate(replayRequestEntity.getStartDate());
-		provenanceRequest.setEndDate(replayRequestEntity.getEndDate());
-		provenanceRequest.setIncrementalResults(false);
-		provenanceRequest.setMaxResults(replayRequestEntity.getMaxResults());
-		provenanceRequest.setSummarize(false);
-		Map<String, String> searchTerms = new HashMap<>();
-		searchTerms.put(SearchableFields.EventType.getIdentifier(), ProvenanceEventType.DROP.toString());
-		searchTerms.put(SearchableFields.ComponentID.getIdentifier(), replayRequestEntity.getComponentId());
-		provenanceRequest.setSearchTerms(searchTerms);
-		
-		ProvenanceDTO provenance = new ProvenanceDTO();
-		provenance.setRequest(provenanceRequest);
+        // create provenance request to query data provenance for dropped files
+        ProvenanceRequestDTO provenanceRequest = new ProvenanceRequestDTO();
+        provenanceRequest.setClusterNodeId(replayRequestEntity.getClusterNodeId());
+        provenanceRequest.setStartDate(replayRequestEntity.getStartDate());
+        provenanceRequest.setEndDate(replayRequestEntity.getEndDate());
+        provenanceRequest.setIncrementalResults(false);
+        provenanceRequest.setMaxResults(replayRequestEntity.getMaxResults());
+        provenanceRequest.setSummarize(false);
+        Map<String, String> searchTerms = new HashMap<>();
+        searchTerms.put(SearchableFields.EventType.getIdentifier(), ProvenanceEventType.DROP.toString());
+        searchTerms.put(SearchableFields.ComponentID.getIdentifier(), replayRequestEntity.getComponentId());
+        provenanceRequest.setSearchTerms(searchTerms);
 
-		ProvenanceEntity provenanceEntity = new ProvenanceEntity();
-		provenanceEntity.setProvenance(provenance);
+        ProvenanceDTO provenance = new ProvenanceDTO();
+        provenance.setRequest(provenanceRequest);
 
-		// setup url to query data provenance
-		String requestUrl = httpServletRequest.getRequestURL().toString();
-		String contextPath = httpServletRequest.getContextPath();
-		String baseUrl = requestUrl.substring(0, requestUrl.indexOf(contextPath)+ contextPath.length());
-		String provenanceUrl = String.format("%s/%s", baseUrl, "provenance");
-		
-		// setup rest template
-		RestTemplate template = new RestTemplate();
-		MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-		logger.info("Querying data provenance using query: {}", 
-				converter.getObjectMapper().writeValueAsString(provenanceEntity));
-				
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-		headers.setAccept(Arrays.asList(org.springframework.http.MediaType.APPLICATION_JSON));
-		headers.setContentLength(converter.getObjectMapper().writeValueAsBytes(provenanceEntity).length);
-		template.setMessageConverters(Arrays.asList(converter));
-		HttpEntity<ProvenanceEntity> entity = new HttpEntity<>(provenanceEntity, headers);
-		
-		// query data provenance
-		ProvenanceEntity results = template.exchange(new URI(provenanceUrl), 
-				org.springframework.http.HttpMethod.POST, entity, ProvenanceEntity.class).getBody();
-		
-		// log number of total events returned and events with content replay available
-		List<ProvenanceEventDTO> eventsWithReplayAvailable = results.getProvenance().getResults().getProvenanceEvents()
-				.stream()
-				.filter(event -> event.getReplayAvailable())
-				.collect(Collectors.toList());
-		logger.info("Total events returned [{}], submitting replay for [{}] drop events from component {}", 
-				results.getProvenance().getResults().getTotal(),
-				eventsWithReplayAvailable.size(),
-				replayRequestEntity.getComponentId());
-		
-		// submit replay events
-		for (ProvenanceEventDTO provenanceEvent: eventsWithReplayAvailable) {
-			SubmitReplayRequestEntity replayEntity = new SubmitReplayRequestEntity();
-			replayEntity.setEventId(provenanceEvent.getEventId());
-			replayEntity.setClusterNodeId(provenanceEvent.getClusterNodeId());
-			this.submitReplay(httpServletRequest, replayEntity);
-		}
-		
-		// return replayed events
-		URI uri = URI.create(generateResourceUri("/replays/queue"));
-		return generateCreatedResponse(uri, eventsWithReplayAvailable).build();
-	}
-    
+        ProvenanceEntity provenanceEntity = new ProvenanceEntity();
+        provenanceEntity.setProvenance(provenance);
+
+        // setup url to query data provenance
+        String requestUrl = httpServletRequest.getRequestURL().toString();
+        String contextPath = httpServletRequest.getContextPath();
+        String baseUrl = requestUrl.substring(0, requestUrl.indexOf(contextPath)+ contextPath.length());
+        String provenanceUrl = String.format("%s/%s", baseUrl, "provenance");
+
+        // setup rest template
+        RestTemplate template = new RestTemplate();
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        logger.info("Querying data provenance using query: {}", 
+                converter.getObjectMapper().writeValueAsString(provenanceEntity));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        headers.setAccept(Arrays.asList(org.springframework.http.MediaType.APPLICATION_JSON));
+        headers.setContentLength(converter.getObjectMapper().writeValueAsBytes(provenanceEntity).length);
+        template.setMessageConverters(Arrays.asList(converter));
+        HttpEntity<ProvenanceEntity> entity = new HttpEntity<>(provenanceEntity, headers);
+
+        // query data provenance
+        ProvenanceEntity results = template.exchange(new URI(provenanceUrl), 
+                org.springframework.http.HttpMethod.POST, entity, ProvenanceEntity.class).getBody();
+
+        // log number of total events returned and events with content replay available
+        List<ProvenanceEventDTO> eventsWithReplayAvailable = results.getProvenance().getResults().getProvenanceEvents()
+                .stream()
+                .filter(event -> event.getReplayAvailable())
+                .collect(Collectors.toList());
+        logger.info("Total events returned [{}], submitting replay for [{}] drop events from component {}", 
+                results.getProvenance().getResults().getTotal(),
+                eventsWithReplayAvailable.size(),
+                replayRequestEntity.getComponentId());
+
+        // submit replay events
+        for (ProvenanceEventDTO provenanceEvent: eventsWithReplayAvailable) {
+            SubmitReplayRequestEntity replayEntity = new SubmitReplayRequestEntity();
+            replayEntity.setEventId(provenanceEvent.getEventId());
+            replayEntity.setClusterNodeId(provenanceEvent.getClusterNodeId());
+            this.submitReplay(httpServletRequest, replayEntity);
+        }
+
+        // return replayed events
+        URI uri = URI.create(generateResourceUri("/replays/queue"));
+        return generateCreatedResponse(uri, eventsWithReplayAvailable).build();
+    }
+
     // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

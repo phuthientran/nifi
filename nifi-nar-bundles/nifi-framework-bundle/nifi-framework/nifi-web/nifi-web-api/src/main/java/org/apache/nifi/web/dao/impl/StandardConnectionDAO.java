@@ -346,12 +346,13 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         if (user == null) {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
+        
         return queue.dropFlowFiles(dropRequestId, user.getIdentity());
     }
     
     @Override
     public DropFlowFileStatus createFlowFileDropRequest(String id, String dropRequestId, List<String> flowFileUuids) {
-    	final Connection connection = locateConnection(id);
+        final Connection connection = locateConnection(id);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
