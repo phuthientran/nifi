@@ -258,39 +258,20 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     @Override
     public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String requestor) {
-        final DropFlowFileRequest dropRequest = createDropFlowFilesRequest(requestIdentifier, requestor);
-        final QueueSize originalSize = size();
-        dropRequest.setCurrentSize(originalSize);
-        dropRequest.setOriginalSize(originalSize);
-        if (originalSize.getObjectCount() == 0) {
-            dropRequest.setDroppedSize(originalSize);
-            dropRequest.setState(DropFlowFileState.COMPLETE);
-            dropRequestMap.put(requestIdentifier, dropRequest);
-            return dropRequest;
-        }
-
-        final Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                dropFlowFiles(dropRequest, requestor);
-            }
-        }, "Drop FlowFiles for Connection " + getIdentifier());
-        t.setDaemon(true);
-        t.start();
-
-        dropRequestMap.put(requestIdentifier, dropRequest);
-
-        return dropRequest;
+        return dropFlowFiles(requestIdentifier, requestor, null);
     }
     
     @Override
-    public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String requestor,
-    		final List<String> flowFileUuids) {
+    public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, 
+                                            final String requestor,
+                                            final List<String> flowFileUuids) {
         final DropFlowFileRequest dropRequest = createDropFlowFilesRequest(requestIdentifier, requestor);
         final QueueSize originalSize = size();
         dropRequest.setCurrentSize(originalSize);
         dropRequest.setOriginalSize(originalSize);
-        dropRequest.setFlowFileUuids(flowFileUuids);
+        if (flowFileUuids != null) {
+            dropRequest.setFlowFileUuids(flowFileUuids);
+        }
         if (originalSize.getObjectCount() == 0) {
             dropRequest.setDroppedSize(originalSize);
             dropRequest.setState(DropFlowFileState.COMPLETE);
