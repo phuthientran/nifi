@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.queue;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.IncompleteSwapFileException;
@@ -35,11 +36,14 @@ import org.apache.nifi.util.concurrency.TimedLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Objects;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,6 +53,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collector;
 
 
 public class SwappablePriorityQueue {
@@ -735,18 +740,20 @@ public class SwappablePriorityQueue {
             logger.debug("For DropFlowFileRequest {}, original size is {}", requestIdentifier, size());
 
             try {
-            	final List<FlowFileRecord> activeQueueRecords;
-            	if (dropRequest.getFlowFileUuids() == null) {
-            		activeQueueRecords = new ArrayList<>(activeQueue);
-            	} else {
-            		// get flow file record for provided uuids
-            		activeQueueRecords = new ArrayList<>();
-            		for(FlowFileRecord flowFile: activeQueue) {
-            			if (dropRequest.getFlowFileUuids().contains(flowFile.getAttribute(CoreAttributes.UUID.key()))) {
-            				activeQueueRecords.add(flowFile);
-            			}
-            		}
-            	}	
+                final HashSet<String> selectFlowFileUuids = new HashSet<>(dropRequest.getFlowFileUuids());
+                final List<FlowFileRecord> selectedQueueRecords = new ArrayList<>();
+                
+                if (selectFlowFileUuids.size() > 0) {
+                    // get flow file record for provided uuids
+                    for (FlowFileRecord flowFile : activeQueue) {
+                        if (selectFlowFileUuids.contains(flowFile.getAttribute(CoreAttributes.UUID.key()))) {
+                            selectedQueueRecords.add(flowFile);
+                        }
+                    }
+                } else {
+                    // get all flow files
+                    selectedQueueRecords.addAll(activeQueue);
+                }
 
                 QueueSize droppedSize;
                 try {
@@ -755,7 +762,7 @@ public class SwappablePriorityQueue {
                         return;
                     }
 
-                    droppedSize = dropAction.drop(activeQueueRecords, requestor);
+                    droppedSize = dropAction.drop(selectedQueueRecords, requestor);
                     logger.debug("For DropFlowFileRequest {}, Dropped {} from active queue", requestIdentifier, droppedSize);
                 } catch (final IOException ioe) {
                     logger.error("Failed to drop the FlowFiles from queue {} due to {}", getQueueIdentifier(), ioe.toString());
@@ -765,12 +772,12 @@ public class SwappablePriorityQueue {
                     return;
                 }
 
-                if (dropRequest.getFlowFileUuids() == null) {
-                	// clear queue
-                	activeQueue.clear();
+                if (selectFlowFileUuids.size() > 0) {
+                    // remove selected flow files from queue
+                    activeQueue.removeAll(selectedQueueRecords);
                 } else {
-                	// remove specific flow files from queue
-                	activeQueue.removeAll(activeQueueRecords);
+                    // clear queue
+                    activeQueue.clear();
                 }
                 
                 incrementActiveQueueSize(-droppedSize.getObjectCount(), -droppedSize.getByteCount());
@@ -786,20 +793,21 @@ public class SwappablePriorityQueue {
                 }
 
                 try {
-                	if (dropRequest.getFlowFileUuids() == null) {
-                    	swapQueue.clear();
-                    	swapMode = false;
-                    	droppedSize = dropAction.drop(swapQueue, requestor);
+                    if (selectFlowFileUuids.size() > 0) {
+                        // drop selected flow files from swap queue
+                        List<FlowFileRecord> swapFlowFiles = new ArrayList<>();
+                        for (FlowFileRecord flowFile: swapQueue) {
+                            if (selectFlowFileUuids.contains(flowFile.getAttribute(CoreAttributes.UUID.key()))) {
+                                swapFlowFiles.add(flowFile);
+                            }
+                        }
+                        swapQueue.removeAll(swapFlowFiles);
+                        droppedSize = dropAction.drop(swapFlowFiles, requestor);
                     } else {
-                    	List<FlowFileRecord> swapFlowFiles = new ArrayList<>();
-                    	for (FlowFileRecord flowFile: swapQueue) {
-                    		if (dropRequest.getFlowFileUuids().contains(flowFile.getAttribute("uuid"))) {
-                    			swapFlowFiles.add(flowFile);
-                    		}
-                    	}
-                    	// remove dropped files from swap queue
-                    	this.swapQueue.removeAll(swapFlowFiles);
-                    	droppedSize = dropAction.drop(swapFlowFiles, requestor);
+                        // drop all flow files in swap queue
+                        swapQueue.clear();
+                        swapMode = false;
+                        droppedSize = dropAction.drop(swapQueue, requestor);
                     }
                 } catch (final IOException ioe) {
                     logger.error("Failed to drop the FlowFiles from queue {} due to {}", getQueueIdentifier(), ioe.toString());
