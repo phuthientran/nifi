@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.tests.system;
 
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -30,18 +29,26 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class NiFiSystemIT {
+    private static final Logger logger = LoggerFactory.getLogger(NiFiSystemIT.class);
+    private final ConcurrentMap<String, Long> lastLogTimestamps = new ConcurrentHashMap<>();
+
     public static final int CLIENT_API_PORT = 5671;
     public static final String NIFI_GROUP_ID = "org.apache.nifi";
     public static final String TEST_EXTENSIONS_ARTIFACT_ID = "nifi-system-test-extensions-nar";
@@ -52,15 +59,10 @@ public abstract class NiFiSystemIT {
     private static final File LIB_DIR = new File("target/nifi-lib-assembly/lib");
     private static volatile String nifiFrameworkVersion = null;
 
-    protected static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("Convenience Relationship for use in tests")
-        .build();
-
     @Rule
     public TestName name = new TestName();
     @Rule
-    public Timeout defaultTimeout = new Timeout(2, TimeUnit.MINUTES);
+    public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
 
     private NiFiClient nifiClient;
     private NiFiClientUtil clientUtil;
@@ -131,6 +133,8 @@ public abstract class NiFiSystemIT {
     }
 
     protected void waitForAllNodesConnected(final int expectedNumberOfNodes, final long sleepMillis) {
+        logger.info("Waiting for {} nodes to connect", expectedNumberOfNodes);
+
         final NiFiClient client = getNifiClient();
 
         final long maxTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(60);
@@ -141,6 +145,8 @@ public abstract class NiFiSystemIT {
                 if (connectedNodeCount == expectedNumberOfNodes) {
                     return;
                 }
+
+                logEverySecond("Waiting for {} nodes to connect but currently only {} nodes are connected", expectedNumberOfNodes, connectedNodeCount);
 
                 if (System.currentTimeMillis() > maxTime) {
                     throw new RuntimeException("Waited up to 60 seconds for both nodes to connect but only " + connectedNodeCount + " nodes connected");
@@ -261,11 +267,40 @@ public abstract class NiFiSystemIT {
         }
     }
 
+    protected void waitForQueueNotEmpty(final String connectionId) throws InterruptedException {
+        logger.info("Waiting for Queue on Connection {} to not be empty", connectionId);
+
+        waitForQueueCountToMatch(connectionId, size -> size > 0, "greater than 0");
+
+        logger.info("Waiting for Queue on Connection {} is not empty", connectionId);
+    }
+
     protected void waitForQueueCount(final String connectionId, final int queueSize) throws InterruptedException {
+        logger.info("Waiting for Queue Count of {} on Connection {}", queueSize, connectionId);
+
+        waitForQueueCountToMatch(connectionId, size -> size == queueSize, String.valueOf(queueSize));
+
+        logger.info("Queue Count for Connection {} is now {}", connectionId, queueSize);
+    }
+
+    private void waitForQueueCountToMatch(final String connectionId, final Predicate<Integer> test, final String queueSizeDescription) throws InterruptedException {
         waitFor(() -> {
             final ConnectionStatusEntity statusEntity = getConnectionStatus(connectionId);
-            return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == queueSize;
+            final int currentSize = statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued();
+            final String sourceName = statusEntity.getConnectionStatus().getSourceName();
+            final String destinationName = statusEntity.getConnectionStatus().getDestinationName();
+            logEverySecond("Current Queue Size for Connection from {} to {} = {}, Waiting for {}", sourceName, destinationName, currentSize, queueSizeDescription);
+
+            return test.test(currentSize);
         });
+    }
+
+    private void logEverySecond(final String message, final Object... args) {
+        final Long lastLogTime = lastLogTimestamps.get(message);
+        if (lastLogTime == null || lastLogTime < System.currentTimeMillis() - 1000L) {
+            logger.info(message, args);
+            lastLogTimestamps.put(message, System.currentTimeMillis());
+        }
     }
 
     private ConnectionStatusEntity getConnectionStatus(final String connectionId) {

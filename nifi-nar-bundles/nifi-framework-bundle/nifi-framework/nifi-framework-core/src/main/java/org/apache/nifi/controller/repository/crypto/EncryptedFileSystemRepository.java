@@ -168,6 +168,10 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
     public InputStream read(final ContentClaim claim) throws IOException {
         InputStream inputStream = super.read(claim);
 
+        if (claim == null) {
+            return inputStream;
+        }
+
         try {
             String recordId = getRecordId(claim);
             logger.debug("Creating decrypted input stream to read flowfile content with record ID: " + recordId);
@@ -305,22 +309,16 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
             ByteBuffer bb = ByteBuffer.allocate(4);
             bb.putInt(b);
             writeBytes(bb.array(), 0, 4);
-
-            scc.setLength(bcos.getBytesWritten() - startingOffset);
         }
 
         @Override
         public synchronized void write(final byte[] b) throws IOException {
             writeBytes(b, 0, b.length);
-
-            scc.setLength(bcos.getBytesWritten() - startingOffset);
         }
 
         @Override
         public synchronized void write(final byte[] b, final int off, final int len) throws IOException {
             writeBytes(b, off, len);
-
-            scc.setLength(bcos.getBytesWritten() - startingOffset);
         }
 
         /**
@@ -338,6 +336,7 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
 
             try {
                 cipherOutputStream.write(b, off, len);
+                scc.setLength(bcos.getBytesWritten() - startingOffset);
             } catch (final IOException ioe) {
                 recycle = false;
                 throw new IOException("Failed to write to " + this, ioe);

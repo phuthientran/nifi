@@ -48,6 +48,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -276,6 +277,22 @@ public class ControllerFacade implements Authorizable {
      */
     public Set<Port> getPublicOutputPorts() {
         return flowController.getFlowManager().getPublicOutputPorts();
+    }
+
+    /**
+     * Returns the status history for the node.
+     *
+     * @return status history
+     */
+    public StatusHistoryDTO getNodeStatusHistory() {
+        final boolean authorized = isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        final StatusHistoryDTO statusHistory = flowController.getNodeStatusHistory();
+
+        if (!authorized)  {
+            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, "Node");
+        }
+
+        return statusHistory;
     }
 
     /**
@@ -634,22 +651,7 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified processor
      */
     public ProcessorStatus getProcessorStatus(final String processorId) {
-        final ProcessGroup root = getRootGroup();
-        final ProcessorNode processor = root.findProcessor(processorId);
-
-        // ensure the processor was found
-        if (processor == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate processor with id '%s'.", processorId));
-        }
-
-        // calculate the process group status
-        final String groupId = processor.getProcessGroup().getIdentifier();
-        final ProcessGroupStatus processGroupStatus = flowController.getEventAccess().getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), 1);
-        if (processGroupStatus == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
-        }
-
-        final ProcessorStatus status = processGroupStatus.getProcessorStatus().stream().filter(processorStatus -> processorId.equals(processorStatus.getId())).findFirst().orElse(null);
+        final ProcessorStatus status = flowController.getEventAccess().getProcessorStatus(processorId, NiFiUserUtils.getNiFiUser());
         if (status == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate processor with id '%s'.", processorId));
         }
@@ -1642,6 +1644,10 @@ public class ControllerFacade implements Authorizable {
     public ProcessorDiagnosticsDTO getProcessorDiagnostics(final ProcessorNode processor, final ProcessorStatus processorStatus, final BulletinRepository bulletinRepository,
             final Function<String, ControllerServiceEntity> serviceEntityFactory) {
         return dtoFactory.createProcessorDiagnosticsDto(processor, processorStatus, bulletinRepository, flowController, serviceEntityFactory);
+    }
+
+    public FlowFileEventRepository getFlowFileEventRepository() {
+        return flowController.getFlowFileEventRepository();
     }
 
     /*

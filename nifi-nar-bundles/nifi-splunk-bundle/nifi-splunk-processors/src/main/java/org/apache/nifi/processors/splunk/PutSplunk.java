@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.processors.splunk;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -37,19 +49,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
-
-import javax.net.ssl.SSLContext;
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"splunk", "logs", "tcp", "udp"})
@@ -120,7 +119,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
 
         SSLContext sslContext = null;
         if (sslContextService != null) {
-            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         return createSender(protocol, host, port, timeout, maxSendBuffer, sslContext);

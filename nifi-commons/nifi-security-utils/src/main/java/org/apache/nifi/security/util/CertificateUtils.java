@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +49,7 @@ import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Set;
 import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.DLSequence;
 import org.bouncycastle.asn1.pkcs.Attribute;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
@@ -78,6 +80,11 @@ public final class CertificateUtils {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtils.class);
     private static final String PEER_NOT_AUTHENTICATED_MSG = "peer not authenticated";
     private static final Map<ASN1ObjectIdentifier, Integer> dnOrderMap = createDnOrderMap();
+
+    public static final String JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.2";
+    public static final String JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.3";
+    public static final String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
+    public static final String[] JAVA_11_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION, JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -111,25 +118,6 @@ public final class CertificateUtils {
         orderMap.put(BCStyle.DC, count++);
         orderMap.put(BCStyle.UID, count++);
         return Collections.unmodifiableMap(orderMap);
-    }
-
-    public enum ClientAuth {
-        NONE(0, "none"),
-        WANT(1, "want"),
-        NEED(2, "need");
-
-        private int value;
-        private String description;
-
-        ClientAuth(int value, String description) {
-            this.value = value;
-            this.description = description;
-        }
-
-        @Override
-        public String toString() {
-            return "Client Auth: " + this.description + " (" + this.value + ")";
-        }
     }
 
     /**
@@ -262,7 +250,7 @@ public final class CertificateUtils {
                 }
                 if (clientAuth == ClientAuth.WANT) {
                     logger.warn("Suppressing missing client certificate exception because client auth is set to 'want'");
-                    return dn;
+                    return null;
                 }
                 throw new CertificateException(e);
             }
@@ -300,7 +288,7 @@ public final class CertificateUtils {
     }
 
     private static ClientAuth getClientAuthStatus(SSLSocket sslSocket) {
-        return sslSocket.getNeedClientAuth() ? ClientAuth.NEED : sslSocket.getWantClientAuth() ? ClientAuth.WANT : ClientAuth.NONE;
+        return sslSocket.getNeedClientAuth() ? ClientAuth.REQUIRED : sslSocket.getWantClientAuth() ? ClientAuth.WANT : ClientAuth.NONE;
     }
 
     /**
@@ -311,6 +299,7 @@ public final class CertificateUtils {
      * @return a new {@code java.security.cert.X509Certificate}
      * @throws CertificateException if there is an error generating the new certificate
      */
+    @SuppressWarnings("deprecation")
     public static X509Certificate convertLegacyX509Certificate(javax.security.cert.X509Certificate legacyCertificate) throws CertificateException {
         if (legacyCertificate == null) {
             throw new IllegalArgumentException("The X.509 certificate cannot be null");
@@ -608,12 +597,32 @@ public final class CertificateUtils {
                 ASN1Encodable extension = attValue.getObjectAt(0);
                 if (extension instanceof Extensions) {
                     return (Extensions) extension;
-                } else if (extension instanceof DERSequence) {
+                } else if (extension instanceof DERSequence || extension instanceof DLSequence) {
                     return Extensions.getInstance(extension);
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Returns {@code true} if this exception is due to a TLS problem (either directly or because of its cause, if present). Traverses the cause chain recursively.
+     *
+     * @param e the exception to evaluate
+     * @return true if the direct or indirect cause of this exception was TLS-related
+     */
+    public static boolean isTlsError(Throwable e) {
+        if (e == null) {
+            return false;
+        } else {
+            if (e instanceof CertificateException || e instanceof TlsException || e instanceof SSLException) {
+                return true;
+            } else if (e.getCause() != null) {
+                return isTlsError(e.getCause());
+            } else {
+                return false;
+            }
+        }
     }
 
     private CertificateUtils() {

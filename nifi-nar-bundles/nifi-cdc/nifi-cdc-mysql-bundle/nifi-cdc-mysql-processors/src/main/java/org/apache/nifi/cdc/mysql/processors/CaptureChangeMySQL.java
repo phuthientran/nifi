@@ -16,13 +16,52 @@
  */
 package org.apache.nifi.cdc.mysql.processors;
 
+import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.EXT_WRITE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.FORMAT_DESCRIPTION;
+import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
+import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
+
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
+import com.github.shyiko.mysql.binlog.GtidSet;
 import com.github.shyiko.mysql.binlog.event.Event;
 import com.github.shyiko.mysql.binlog.event.EventHeaderV4;
 import com.github.shyiko.mysql.binlog.event.EventType;
+import com.github.shyiko.mysql.binlog.event.GtidEventData;
 import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -44,16 +83,16 @@ import org.apache.nifi.cdc.mysql.event.BinlogEventInfo;
 import org.apache.nifi.cdc.mysql.event.BinlogEventListener;
 import org.apache.nifi.cdc.mysql.event.BinlogLifecycleListener;
 import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
+import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 import org.apache.nifi.cdc.mysql.event.DeleteRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.InsertRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.RawBinlogEvent;
-import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 import org.apache.nifi.cdc.mysql.event.UpdateRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.io.BeginTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.CommitTransactionEventWriter;
+import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.DeleteRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.InsertRowsWriter;
-import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.UpdateRowsWriter;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -74,45 +113,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-
-import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.EXT_WRITE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.FORMAT_DESCRIPTION;
-import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
-import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
 
 
 /**
@@ -233,8 +233,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor SERVER_ID = new PropertyDescriptor.Builder()
             .name("capture-change-mysql-server-id")
             .displayName("Server ID")
-            .description("The client connecting to the MySQL replication group is actually a simplified slave (server), and the Server ID value must be unique across the whole replication "
-                    + "group (i.e. different from any other Server ID being used by any master or slave). Thus, each instance of CaptureChangeMySQL must have a Server ID unique across "
+            .description("The client connecting to the MySQL replication group is actually a simplified replica (server), and the Server ID value must be unique across the whole replication "
+                    + "group (i.e. different from any other Server ID being used by any primary or replica). Thus, each instance of CaptureChangeMySQL must have a Server ID unique across "
                     + "the replication group. If the Server ID is not specified, it defaults to 65535.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
@@ -316,7 +316,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .name("capture-change-mysql-init-binlog-filename")
             .displayName("Initial Binlog Filename")
             .description("Specifies an initial binlog filename to use if this processor's State does not have a current binlog filename. If a filename is present "
-                    + "in the processor's State, this property is ignored. This can be used along with Initial Binlog Position to \"skip ahead\" if previous events are not desired. "
+                    + "in the processor's State or \"Use GTID\" property is set to false, this property is ignored. "
+                    + "This can be used along with Initial Binlog Position to \"skip ahead\" if previous events are not desired. "
                     + "Note that NiFi Expression Language is supported, but this property is evaluated when the processor is configured, so FlowFile attributes may not be used. Expression "
                     + "Language is supported to enable the use of the Variable Registry and/or environment properties.")
             .required(false)
@@ -328,30 +329,57 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .name("capture-change-mysql-init-binlog-position")
             .displayName("Initial Binlog Position")
             .description("Specifies an initial offset into a binlog (specified by Initial Binlog Filename) to use if this processor's State does not have a current "
-                    + "binlog filename. If a filename is present in the processor's State, this property is ignored. This can be used along with Initial Binlog Filename "
-                    + "to \"skip ahead\" if previous events are not desired. Note that NiFi Expression Language is supported, but this property is evaluated when the "
-                    + "processor is configured, so FlowFile attributes may not be used. Expression Language is supported to enable the use of the Variable Registry "
-                    + "and/or environment properties.")
+                    + "binlog filename. If a filename is present in the processor's State or \"Use GTID\" property is false, this property is ignored. "
+                    + "This can be used along with Initial Binlog Filename to \"skip ahead\" if previous events are not desired. Note that NiFi Expression Language "
+                    + "is supported, but this property is evaluated when the processor is configured, so FlowFile attributes may not be used. Expression Language is "
+                    + "supported to enable the use of the Variable Registry and/or environment properties.")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    private static List<PropertyDescriptor> propDescriptors;
+    public static final PropertyDescriptor USE_BINLOG_GTID = new PropertyDescriptor.Builder()
+            .name("capture-change-mysql-use-gtid")
+            .displayName("Use Binlog GTID")
+            .description("Specifies whether to use Global Transaction ID (GTID) for binlog tracking. If set to true, processor's state of binlog file name and position is ignored. "
+                    + "The main benefit of using GTID is to have much reliable failover than using binlog filename/position.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor INIT_BINLOG_GTID = new PropertyDescriptor.Builder()
+            .name("capture-change-mysql-init-gtid")
+            .displayName("Initial Binlog GTID")
+            .description("Specifies an initial GTID to use if this processor's State does not have a current GTID. "
+                    + "If a GTID is present in the processor's State or \"Use GTID\" property is set to false, this property is ignored. "
+                    + "This can be used to \"skip ahead\" if previous events are not desired. "
+                    + "Note that NiFi Expression Language is supported, but this property is evaluated when the processor is configured, so FlowFile attributes may not be used. "
+                    + "Expression Language is supported to enable the use of the Variable Registry and/or environment properties.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    private static final List<PropertyDescriptor> propDescriptors;
 
     private volatile ProcessSession currentSession;
     private BinaryLogClient binlogClient;
     private BinlogEventListener eventListener;
     private BinlogLifecycleListener lifecycleListener;
+    private GtidSet gtidSet;
 
-    private volatile LinkedBlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>();
     private volatile String currentBinlogFile = null;
     private volatile long currentBinlogPosition = 4;
+    private volatile String currentGtidSet = null;
 
-    // The following variables save the value of the binlog filename and position (and sequence id) at the beginning of a transaction. Used for rollback
+    // The following variables save the value of the binlog filename, position, (sequence id), and gtid at the beginning of a transaction. Used for rollback
     private volatile String xactBinlogFile = null;
     private volatile long xactBinlogPosition = 4;
     private volatile long xactSequenceId = 0;
+    private volatile String xactGtidSet = null;
 
     private volatile TableInfo currentTable = null;
     private volatile String currentDatabase = null;
@@ -359,18 +387,19 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private volatile Pattern tableNamePattern;
     private volatile boolean includeBeginCommit = false;
     private volatile boolean includeDDLEvents = false;
+    private volatile boolean useGtid = false;
 
     private volatile boolean inTransaction = false;
     private volatile boolean skipTable = false;
-    private AtomicBoolean doStop = new AtomicBoolean(false);
-    private AtomicBoolean hasRun = new AtomicBoolean(false);
+    private final AtomicBoolean doStop = new AtomicBoolean(false);
+    private final AtomicBoolean hasRun = new AtomicBoolean(false);
 
     private int currentHost = 0;
     private String transitUri = "<unknown>";
 
     private volatile long lastStateUpdate = 0L;
     private volatile long stateUpdateInterval = -1L;
-    private AtomicLong currentSequenceId = new AtomicLong(0);
+    private final AtomicLong currentSequenceId = new AtomicLong(0);
 
     private volatile DistributedMapCacheClient cacheClient = null;
     private final Serializer<TableInfoCacheKey> cacheKeySerializer = new TableInfoCacheKey.Serializer();
@@ -410,6 +439,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(INIT_SEQUENCE_ID);
         pds.add(INIT_BINLOG_FILENAME);
         pds.add(INIT_BINLOG_POSITION);
+        pds.add(USE_BINLOG_GTID);
+        pds.add(INIT_BINLOG_GTID);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -452,32 +483,48 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         includeBeginCommit = context.getProperty(INCLUDE_BEGIN_COMMIT).asBoolean();
         includeDDLEvents = context.getProperty(INCLUDE_DDL_EVENTS).asBoolean();
+        useGtid = context.getProperty(USE_BINLOG_GTID).asBoolean();
 
-        // Set current binlog filename to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename if no State variable is present
-        currentBinlogFile = stateMap.get(BinlogEventInfo.BINLOG_FILENAME_KEY);
-        if (currentBinlogFile == null) {
-            if (!getAllRecords) {
-                if (context.getProperty(INIT_BINLOG_FILENAME).isSet()) {
-                    currentBinlogFile = context.getProperty(INIT_BINLOG_FILENAME).evaluateAttributeExpressions().getValue();
+        if (useGtid) {
+            // Set current gtid to whatever is in State, falling back to the Retrieve All Records then Initial Gtid if no State variable is present
+            currentGtidSet = stateMap.get(BinlogEventInfo.BINLOG_GTIDSET_KEY);
+            if (currentGtidSet == null) {
+                if (!getAllRecords && context.getProperty(INIT_BINLOG_GTID).isSet()) {
+                    currentGtidSet = context.getProperty(INIT_BINLOG_GTID).evaluateAttributeExpressions().getValue();
+                } else {
+                    // If we're starting from the beginning of all binlogs, the binlog gtid must be the empty string (not null)
+                    currentGtidSet = "";
+                }
+            }
+            currentBinlogFile = "";
+            currentBinlogPosition = DO_NOT_SET;
+        } else {
+            // Set current binlog filename to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename if no State variable is present
+            currentBinlogFile = stateMap.get(BinlogEventInfo.BINLOG_FILENAME_KEY);
+            if (currentBinlogFile == null) {
+                if (!getAllRecords) {
+                    if (context.getProperty(INIT_BINLOG_FILENAME).isSet()) {
+                        currentBinlogFile = context.getProperty(INIT_BINLOG_FILENAME).evaluateAttributeExpressions().getValue();
+                    }
+                } else {
+                    // If we're starting from the beginning of all binlogs, the binlog filename must be the empty string (not null)
+                    currentBinlogFile = "";
+                }
+            }
+
+            // Set current binlog position to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename if no State variable is present
+            String binlogPosition = stateMap.get(BinlogEventInfo.BINLOG_POSITION_KEY);
+            if (binlogPosition != null) {
+                currentBinlogPosition = Long.valueOf(binlogPosition);
+            } else if (!getAllRecords) {
+                if (context.getProperty(INIT_BINLOG_POSITION).isSet()) {
+                    currentBinlogPosition = context.getProperty(INIT_BINLOG_POSITION).evaluateAttributeExpressions().asLong();
+                } else {
+                    currentBinlogPosition = DO_NOT_SET;
                 }
             } else {
-                // If we're starting from the beginning of all binlogs, the binlog filename must be the empty string (not null)
-                currentBinlogFile = "";
+                currentBinlogPosition = -1;
             }
-        }
-
-        // Set current binlog position to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename if no State variable is present
-        String binlogPosition = stateMap.get(BinlogEventInfo.BINLOG_POSITION_KEY);
-        if (binlogPosition != null) {
-            currentBinlogPosition = Long.valueOf(binlogPosition);
-        } else if (!getAllRecords) {
-            if (context.getProperty(INIT_BINLOG_POSITION).isSet()) {
-                currentBinlogPosition = context.getProperty(INIT_BINLOG_POSITION).evaluateAttributeExpressions().asLong();
-            } else {
-                currentBinlogPosition = DO_NOT_SET;
-            }
-        } else {
-            currentBinlogPosition = -1;
         }
 
         // Get current sequence ID from state
@@ -573,7 +620,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             long timeSinceLastUpdate = now - lastStateUpdate;
 
             if (stateUpdateInterval != 0 && timeSinceLastUpdate >= stateUpdateInterval) {
-                updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get());
+                updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get(), currentGtidSet);
                 lastStateUpdate = now;
             }
         } catch (IOException ioe) {
@@ -582,6 +629,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 currentBinlogFile = xactBinlogFile == null ? "" : xactBinlogFile;
                 currentBinlogPosition = xactBinlogPosition;
                 currentSequenceId.set(xactSequenceId);
+                currentGtidSet = xactGtidSet;
                 inTransaction = false;
                 stop(stateManager);
                 queue.clear();
@@ -624,7 +672,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         if (hostsString == null) {
             return null;
         }
-        final List<String> hostsSplit = Arrays.asList(hostsString.split(","));
+        final String[] hostsSplit = hostsString.split(",");
         List<InetSocketAddress> hostsList = new ArrayList<>();
 
         for (String item : hostsSplit) {
@@ -683,6 +731,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 binlogClient.setBinlogPosition(currentBinlogPosition);
             }
 
+            binlogClient.setGtidSet(currentGtidSet);
+            binlogClient.setGtidSetFallbackToPurged(true);
+
             if (serverId != null) {
                 binlogClient.setServerId(serverId);
             }
@@ -721,6 +772,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
         }
 
+        gtidSet = new GtidSet(binlogClient.getGtidSet());
         doStop.set(false);
     }
 
@@ -738,7 +790,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             // We always get ROTATE and FORMAT_DESCRIPTION messages no matter where we start (even from the end), and they won't have the correct "next position" value, so only
             // advance the position if it is not that type of event. ROTATE events don't generate output CDC events and have the current binlog position in a special field, which
             // is filled in during the ROTATE case
-            if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION) {
+            if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION && !useGtid) {
                 currentBinlogPosition = header.getPosition();
             }
             log.debug("Got message event type: {} ", new Object[]{header.getEventType().toString()});
@@ -792,13 +844,16 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         if (inTransaction) {
                             throw new IOException("BEGIN event received while already processing a transaction. This could indicate that your binlog position is invalid.");
                         }
-                        // Mark the current binlog position in case we have to rollback the transaction (if the processor is stopped, e.g.)
+                        // Mark the current binlog position and GTID in case we have to rollback the transaction (if the processor is stopped, e.g.)
                         xactBinlogFile = currentBinlogFile;
                         xactBinlogPosition = currentBinlogPosition;
                         xactSequenceId = currentSequenceId.get();
+                        xactGtidSet = currentGtidSet;
 
                         if (includeBeginCommit && (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches())) {
-                            BeginTransactionEventInfo beginEvent = new BeginTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
+                            BeginTransactionEventInfo beginEvent = useGtid
+                                    ? new BeginTransactionEventInfo(currentDatabase, timestamp, currentGtidSet)
+                                    : new BeginTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
                             currentSequenceId.set(beginEventWriter.writeEvent(currentSession, transitUri, beginEvent, currentSequenceId.get(), REL_SUCCESS));
                         }
                         inTransaction = true;
@@ -809,7 +864,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         }
                         // InnoDB generates XID events for "commit", but MyISAM generates Query events with "COMMIT", so handle that here
                         if (includeBeginCommit && (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches())) {
-                            CommitTransactionEventInfo commitTransactionEvent = new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
+                            CommitTransactionEventInfo commitTransactionEvent = useGtid
+                                    ? new CommitTransactionEventInfo(currentDatabase, timestamp, currentGtidSet)
+                                    : new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
                             currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                         }
                         // Commit the NiFi session
@@ -831,7 +888,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             if (includeDDLEvents && (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches())) {
                                 // If we don't have table information, we can still use the database name
                                 TableInfo ddlTableInfo = (currentTable != null) ? currentTable : new TableInfo(currentDatabase, null, null, null);
-                                DDLEventInfo ddlEvent = new DDLEventInfo(ddlTableInfo, timestamp, currentBinlogFile, currentBinlogPosition, sql);
+                                DDLEventInfo ddlEvent = useGtid
+                                        ? new DDLEventInfo(ddlTableInfo, timestamp, currentGtidSet, sql)
+                                        : new DDLEventInfo(ddlTableInfo, timestamp, currentBinlogFile, currentBinlogPosition, sql);
                                 currentSequenceId.set(ddlEventWriter.writeEvent(currentSession, transitUri, ddlEvent, currentSequenceId.get(), REL_SUCCESS));
                             }
                             // Remove all the keys from the cache that this processor added
@@ -852,7 +911,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 + "This could indicate that your binlog position is invalid.");
                     }
                     if (includeBeginCommit && (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches())) {
-                        CommitTransactionEventInfo commitTransactionEvent = new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
+                        CommitTransactionEventInfo commitTransactionEvent = useGtid
+                                ? new CommitTransactionEventInfo(currentDatabase, timestamp, currentGtidSet)
+                                : new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
                         currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                     }
                     // Commit the NiFi session
@@ -889,29 +950,47 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             || eventType == EXT_WRITE_ROWS
                             || eventType == PRE_GA_WRITE_ROWS) {
 
-                        InsertRowsEventInfo eventInfo = new InsertRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
+                        InsertRowsEventInfo eventInfo = useGtid
+                                ? new InsertRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
+                                : new InsertRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
                         currentSequenceId.set(insertRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
 
                     } else if (eventType == DELETE_ROWS
                             || eventType == EXT_DELETE_ROWS
                             || eventType == PRE_GA_DELETE_ROWS) {
 
-                        DeleteRowsEventInfo eventInfo = new DeleteRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
+                        DeleteRowsEventInfo eventInfo = useGtid
+                                ? new DeleteRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
+                                : new DeleteRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
                         currentSequenceId.set(deleteRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
 
                     } else {
                         // Update event
-                        UpdateRowsEventInfo eventInfo = new UpdateRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
+                        UpdateRowsEventInfo eventInfo = useGtid
+                                ? new UpdateRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
+                                : new UpdateRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
                         currentSequenceId.set(updateRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
                     }
                     break;
 
                 case ROTATE:
-                    // Update current binlog filename
-                    RotateEventData rotateEventData = event.getData();
-                    currentBinlogFile = rotateEventData.getBinlogFilename();
-                    currentBinlogPosition = rotateEventData.getBinlogPosition();
+                    if (!useGtid) {
+                        // Update current binlog filename
+                        RotateEventData rotateEventData = event.getData();
+                        currentBinlogFile = rotateEventData.getBinlogFilename();
+                        currentBinlogPosition = rotateEventData.getBinlogPosition();
+                    }
                     break;
+
+                case GTID:
+                    if (useGtid) {
+                        // Update current binlog gtid
+                        GtidEventData gtidEventData = event.getData();
+                        gtidSet.add(gtidEventData.getGtid());
+                        currentGtidSet = gtidSet.toString();
+                    }
+                    break;
+
                 default:
                     break;
             }
@@ -919,7 +998,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             // Advance the current binlog position. This way if no more events are received and the processor is stopped, it will resume after the event that was just processed.
             // We always get ROTATE and FORMAT_DESCRIPTION messages no matter where we start (even from the end), and they won't have the correct "next position" value, so only
             // advance the position if it is not that type of event.
-            if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION) {
+            if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION && !useGtid) {
                 currentBinlogPosition = header.getNextPosition();
             }
         }
@@ -939,7 +1018,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             doStop.set(true);
 
             if (hasRun.getAndSet(false)) {
-                updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get());
+                updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get(), currentGtidSet);
             }
             currentBinlogPosition = -1;
 
@@ -954,17 +1033,23 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private void updateState(StateManager stateManager, String binlogFile, long binlogPosition, long sequenceId) throws IOException {
+    private void updateState(StateManager stateManager, String binlogFile, long binlogPosition, long sequenceId, String gtidSet) throws IOException {
         // Update state with latest values
         if (stateManager != null) {
             Map<String, String> newStateMap = new HashMap<>(stateManager.getState(Scope.CLUSTER).toMap());
 
-            // Save current binlog filename and position to the state map
+            // Save current binlog filename, position and GTID to the state map
             if (binlogFile != null) {
                 newStateMap.put(BinlogEventInfo.BINLOG_FILENAME_KEY, binlogFile);
             }
+
             newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(binlogPosition));
             newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(sequenceId));
+
+            if (gtidSet != null) {
+                newStateMap.put(BinlogEventInfo.BINLOG_GTIDSET_KEY, gtidSet);
+            }
+
             stateManager.setState(newStateMap, Scope.CLUSTER);
         }
     }
@@ -1030,9 +1115,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     private class JDBCConnectionHolder {
-        private String connectionUrl;
-        private Properties connectionProps = new Properties();
-        private long connectionTimeoutMillis;
+        private final String connectionUrl;
+        private final Properties connectionProps = new Properties();
+        private final long connectionTimeoutMillis;
 
         private Connection connection;
 
@@ -1108,7 +1193,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     private static class DriverShim implements Driver {
-        private Driver driver;
+        private final Driver driver;
 
         DriverShim(Driver d) {
             this.driver = d;

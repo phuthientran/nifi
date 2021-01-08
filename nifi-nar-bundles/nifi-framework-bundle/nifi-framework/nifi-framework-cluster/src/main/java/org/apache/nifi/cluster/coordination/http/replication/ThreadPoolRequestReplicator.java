@@ -237,6 +237,11 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
         headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
 
+        // Add the header containing the group information for the end user in the proxied entity chain, these groups would
+        // only be populated if the end user authenticated against an external identity provider like SAML or OIDC
+        final String proxiedEntityGroups = ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups());
+        headers.put(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityGroups);
+
         // remove the access token if present, since the user is already authenticated... authorization
         // will happen when the request is replicated using the proxy chain above
         headers.remove(JwtAuthenticationFilter.AUTHORIZATION);
@@ -837,10 +842,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                 logger.debug("Replicating request {} {} to {}", method, uri.getPath(), nodeId);
 
                 nodeResponse = replicateRequest(request, nodeId, uri, requestId, clusterResponse);
-            } catch (final Exception e) {
-                nodeResponse = new NodeResponse(nodeId, method, uri, e);
-                logger.warn("Failed to replicate request {} {} to {} due to {}", method, uri.getPath(), nodeId, e.toString());
-                logger.warn("", e);
+            } catch (final Throwable t) {
+                nodeResponse = new NodeResponse(nodeId, method, uri, t);
+                logger.warn("Failed to replicate request {} {} to {} due to {}", method, uri.getPath(), nodeId, t.toString());
+                logger.warn("", t);
             }
 
             if (callback != null) {

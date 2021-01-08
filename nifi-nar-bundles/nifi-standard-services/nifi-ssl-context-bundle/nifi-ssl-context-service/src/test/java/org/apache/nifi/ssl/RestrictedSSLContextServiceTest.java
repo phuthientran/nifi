@@ -21,9 +21,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.Test;
 
 public class RestrictedSSLContextServiceTest {
@@ -32,9 +34,9 @@ public class RestrictedSSLContextServiceTest {
     public void testTLSAlgorithms() {
         final Set<String> expected = new HashSet<>();
         expected.add("TLS");
-        expected.add("TLSv1.2");
+        expected.addAll(Arrays.asList(TlsConfiguration.getCurrentSupportedTlsProtocolVersions()));
 
-        final AllowableValue[] allowableValues = RestrictedSSLContextService.buildAlgorithmAllowableValues();
+        final AllowableValue[] allowableValues = StandardRestrictedSSLContextService.buildAlgorithmAllowableValues();
         assertThat(allowableValues, notNullValue());
         assertThat(allowableValues.length, equalTo(expected.size()));
         for(final AllowableValue value : allowableValues) {

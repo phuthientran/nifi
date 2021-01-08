@@ -76,6 +76,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static org.apache.nifi.processor.util.pattern.ExceptionHandler.createOnError;
@@ -141,7 +142,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
             .name("database-session-autocommit")
             .displayName("Database Session AutoCommit")
-            .description("The autocommit mode to set on the database connection being used.")
+            .description("The autocommit mode to set on the database connection being used. If set to false, the operation(s) will be explicitly committed or rolled back "
+                    + "(based on success or failure respectively), if set to true the driver/database handles the commit/rollback.")
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
@@ -151,7 +153,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .description("If true, when a FlowFile is consumed by this Processor, the Processor will first check the fragment.identifier and fragment.count attributes of that FlowFile. "
                     + "If the fragment.count value is greater than 1, the Processor will not process any FlowFile with that fragment.identifier until all are available; "
                     + "at that point, it will process all FlowFiles with that fragment.identifier as a single transaction, in the order specified by the FlowFiles' fragment.index attributes. "
-                    + "This Provides atomicity of those SQL statements. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
+                    + "This Provides atomicity of those SQL statements. Once any statement of this transaction throws exception when executing, this transaction will be rolled back. When "
+                    + "transaction rollback happened, none of these FlowFiles would be routed to 'success'. If the <Rollback On Failure> is set true, these FlowFiles will stay in the input "
+                    + "relationship. When the <Rollback On Failure> is set false,, if any of these FlowFiles will be routed to 'retry', all of these FlowFiles will be routed to 'retry'.Otherwise, "
+                    + "they will be routed to 'failure'. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
@@ -549,7 +554,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.onCompleted((c, s, fc, conn) -> {
             try {
-                conn.commit();
+                // Only call commit() if auto-commit is false, per the JDBC spec (see java.sql.Connection)
+                if (!conn.getAutoCommit()) {
+                    conn.commit();
+                }
             } catch (SQLException e) {
                 // Throw ProcessException to rollback process session.
                 throw new ProcessException("Failed to commit database connection due to " + e, e);
@@ -558,7 +566,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.onFailed((c, s, fc, conn, e) -> {
             try {
-                conn.rollback();
+                // Only call rollback() if auto-commit is false, per the JDBC spec (see java.sql.Connection)
+                if (!conn.getAutoCommit()) {
+                    conn.rollback();
+                }
             } catch (SQLException re) {
                 // Just log the fact that rollback failed.
                 // ProcessSession will be rollback by the thrown Exception so don't have to do anything here.
@@ -576,6 +587,20 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     getLogger().warn("Failed to reset autocommit due to {}", new Object[]{se});
                 }
             }
+        });
+
+        process.adjustFailed((c, r) -> {
+            if (c.getProperty(SUPPORT_TRANSACTIONS).asBoolean()){
+                if (r.contains(REL_RETRY) || r.contains(REL_FAILURE)) {
+                    final List<FlowFile> transferredFlowFiles = r.getRoutedFlowFiles().values().stream()
+                            .flatMap(List::stream).collect(Collectors.toList());
+                    Relationship rerouteShip = r.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE;
+                    r.getRoutedFlowFiles().clear();
+                    r.routeTo(transferredFlowFiles, rerouteShip);
+                    return true;
+                }
+            }
+            return false;
         });
 
         exceptionHandler = new ExceptionHandler<>();

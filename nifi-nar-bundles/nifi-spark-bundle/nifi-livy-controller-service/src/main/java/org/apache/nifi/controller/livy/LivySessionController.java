@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.livy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -39,7 +40,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
@@ -66,23 +69,17 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.controller.api.livy.LivySessionService;
 import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosKeytabCredentials;
 import org.apache.nifi.hadoop.KerberosKeytabSPNegoAuthSchemeProvider;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-
-import org.apache.nifi.controller.api.livy.LivySessionService;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 
 @Tags({"Livy", "REST", "Spark", "http"})
 @CapabilityDescription("Manages pool of Spark sessions over HTTP")
@@ -184,7 +181,7 @@ public class LivySessionController extends AbstractControllerService implements 
     private volatile String controllerKind;
     private volatile String jars;
     private volatile String files;
-    private volatile Map<Integer, JSONObject> sessions = new ConcurrentHashMap<>();
+    private final Map<Integer, JSONObject> sessions = new ConcurrentHashMap<>();
     private volatile SSLContextService sslContextService;
     private volatile SSLContext sslContext;
     private volatile int connectTimeout;
@@ -218,7 +215,7 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @OnEnabled
-    public void onConfigured(final ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         final String livyHost = context.getProperty(LIVY_HOST).evaluateAttributeExpressions().getValue();
         final String livyPort = context.getProperty(LIVY_PORT).evaluateAttributeExpressions().getValue();
         final String sessionPoolSize = context.getProperty(SESSION_POOL_SIZE).evaluateAttributeExpressions().getValue();
@@ -227,7 +224,7 @@ public class LivySessionController extends AbstractControllerService implements 
         final String jars = context.getProperty(JARS).evaluateAttributeExpressions().getValue();
         final String files = context.getProperty(FILES).evaluateAttributeExpressions().getValue();
         sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
+        sslContext = sslContextService == null ? null : sslContextService.createContext();
         connectTimeout = Math.toIntExact(context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS));
         credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 

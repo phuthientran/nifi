@@ -18,8 +18,10 @@
 package org.apache.nifi.processors.kudu;
 
 import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
+import org.apache.kudu.client.AlterTableOptions;
 import org.apache.kudu.client.AsyncKuduClient;
 import org.apache.kudu.client.Delete;
 import org.apache.kudu.client.Insert;
@@ -51,6 +53,8 @@ import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
 
@@ -62,6 +66,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
@@ -120,47 +128,73 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    protected KuduClient kuduClient;
+    private volatile KuduClient kuduClient;
+    private final ReadWriteLock kuduClientReadWriteLock = new ReentrantReadWriteLock();
+    private final Lock kuduClientReadLock = kuduClientReadWriteLock.readLock();
+    private final Lock kuduClientWriteLock = kuduClientReadWriteLock.writeLock();
 
     private volatile KerberosUser kerberosUser;
 
-    public KerberosUser getKerberosUser() {
+    protected KerberosUser getKerberosUser() {
         return this.kerberosUser;
     }
 
-    public KuduClient getKuduClient() {
-        return this.kuduClient;
-    }
-
-    public void createKuduClient(ProcessContext context) throws LoginException {
-        final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
+    protected void createKerberosUserAndOrKuduClient(ProcessContext context) throws LoginException {
         final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
         if (credentialsService != null) {
-            kerberosUser = loginKerberosKeytabUser(credentialsService.getPrincipal(), credentialsService.getKeytab());
+            kerberosUser = createKerberosKeytabUser(credentialsService.getPrincipal(), credentialsService.getKeytab(), context);
+            kerberosUser.login(); // login creates the kudu client as well
         } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
-            kerberosUser = loginKerberosPasswordUser(kerberosPrincipal, kerberosPassword);
-        }
-
-        if (kerberosUser != null) {
-            final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(kuduMasters, context), getLogger());
-            this.kuduClient = kerberosAction.execute();
+            kerberosUser = createKerberosPasswordUser(kerberosPrincipal, kerberosPassword, context);
+            kerberosUser.login(); // login creates the kudu client as well
         } else {
-            this.kuduClient = buildClient(kuduMasters, context);
+            createKuduClient(context);
         }
     }
 
+    protected void createKuduClient(ProcessContext context) {
+        kuduClientWriteLock.lock();
+        try {
+            if (this.kuduClient != null) {
+                try {
+                    this.kuduClient.close();
+                } catch (KuduException e) {
+                    getLogger().error("Couldn't close Kudu client.");
+                }
+            }
 
-    protected KuduClient buildClient(final String masters, final ProcessContext context) {
-        final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Integer adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+            if (kerberosUser != null) {
+                final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(context), getLogger());
+                this.kuduClient = kerberosAction.execute();
+            } else {
+                this.kuduClient = buildClient(context);
+            }
+        } finally {
+            kuduClientWriteLock.unlock();
+        }
+    }
+
+    protected KuduClient buildClient(final ProcessContext context) {
+        final String masters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
+        final int operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
                 .defaultSocketReadTimeoutMs(adminOperationTimeout)
                 .build();
+    }
+
+    protected void executeOnKuduClient(Consumer<KuduClient> actionOnKuduClient) {
+        kuduClientReadLock.lock();
+        try {
+            actionOnKuduClient.accept(kuduClient);
+        } finally {
+            kuduClientReadLock.unlock();
+        }
     }
 
     protected void flushKuduSession(final KuduSession kuduSession, boolean close, final List<RowError> rowErrors) throws KuduException {
@@ -176,16 +210,30 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
     }
 
-    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab) throws LoginException {
-        final KerberosUser kerberosUser = new KerberosKeytabUser(principal, keytab);
-        kerberosUser.login();
-        return kerberosUser;
+    protected KerberosUser createKerberosKeytabUser(String principal, String keytab, ProcessContext context) {
+        return new KerberosKeytabUser(principal, keytab) {
+            @Override
+            public synchronized void login() throws LoginException {
+                if (!isLoggedIn()) {
+                    super.login();
+
+                    createKuduClient(context);
+                }
+            }
+        };
     }
 
-    protected KerberosUser loginKerberosPasswordUser(final String principal, final String password) throws LoginException {
-        final KerberosUser kerberosUser = new KerberosPasswordUser(principal, password);
-        kerberosUser.login();
-        return kerberosUser;
+    protected KerberosUser createKerberosPasswordUser(String principal, String password, ProcessContext context) {
+        return new KerberosPasswordUser(principal, password) {
+            @Override
+            public synchronized void login() throws LoginException {
+                if (!isLoggedIn()) {
+                    super.login();
+
+                    createKuduClient(context);
+                }
+            }
+        };
     }
 
     @Override
@@ -247,63 +295,72 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             if (lowercaseFields) {
                 colName = colName.toLowerCase();
             }
-            int colIdx = this.getColumnIndex(schema, colName);
-            if (colIdx != -1) {
-                ColumnSchema colSchema = schema.getColumnByIndex(colIdx);
-                Type colType = colSchema.getType();
 
-                if (record.getValue(recordFieldName) == null) {
-                    if (schema.getColumnByIndex(colIdx).isKey()) {
-                        throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
-                    } else if(!schema.getColumnByIndex(colIdx).isNullable()) {
-                        throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
-                    }
+            if (!schema.hasColumn(colName)) {
+                continue;
+            }
 
-                    if (!ignoreNull) {
-                        row.setNull(colName);
-                    }
-                } else {
-                    Object value = record.getValue(recordFieldName);
-                    switch (colType) {
-                        case BOOL:
-                            row.addBoolean(colIdx, DataTypeUtils.toBoolean(value, recordFieldName));
-                            break;
-                        case INT8:
-                            row.addByte(colIdx, DataTypeUtils.toByte(value, recordFieldName));
-                            break;
-                        case INT16:
-                            row.addShort(colIdx,  DataTypeUtils.toShort(value, recordFieldName));
-                            break;
-                        case INT32:
-                            row.addInt(colIdx,  DataTypeUtils.toInteger(value, recordFieldName));
-                            break;
-                        case INT64:
-                            row.addLong(colIdx,  DataTypeUtils.toLong(value, recordFieldName));
-                            break;
-                        case UNIXTIME_MICROS:
-                            DataType fieldType = record.getSchema().getDataType(recordFieldName).get();
-                            Timestamp timestamp = DataTypeUtils.toTimestamp(record.getValue(recordFieldName),
-                                    () -> DataTypeUtils.getDateFormat(fieldType.getFormat()), recordFieldName);
-                            row.addTimestamp(colIdx, timestamp);
-                            break;
-                        case STRING:
-                            row.addString(colIdx, DataTypeUtils.toString(value, recordFieldName));
-                            break;
-                        case BINARY:
-                            row.addBinary(colIdx, DataTypeUtils.toString(value, recordFieldName).getBytes());
-                            break;
-                        case FLOAT:
-                            row.addFloat(colIdx, DataTypeUtils.toFloat(value, recordFieldName));
-                            break;
-                        case DOUBLE:
-                            row.addDouble(colIdx, DataTypeUtils.toDouble(value, recordFieldName));
-                            break;
-                        case DECIMAL:
-                            row.addDecimal(colIdx, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
-                            break;
-                        default:
-                            throw new IllegalStateException(String.format("unknown column type %s", colType));
-                    }
+            final int columnIndex = schema.getColumnIndex(colName);
+            final ColumnSchema colSchema = schema.getColumnByIndex(columnIndex);
+            final Type colType = colSchema.getType();
+
+            if (record.getValue(recordFieldName) == null) {
+                if (schema.getColumnByIndex(columnIndex).isKey()) {
+                    throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
+                } else if(!schema.getColumnByIndex(columnIndex).isNullable()) {
+                    throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
+                }
+
+                if (!ignoreNull) {
+                    row.setNull(colName);
+                }
+            } else {
+                Object value = record.getValue(recordFieldName);
+                switch (colType) {
+                    case BOOL:
+                        row.addBoolean(columnIndex, DataTypeUtils.toBoolean(value, recordFieldName));
+                        break;
+                    case INT8:
+                        row.addByte(columnIndex, DataTypeUtils.toByte(value, recordFieldName));
+                        break;
+                    case INT16:
+                        row.addShort(columnIndex,  DataTypeUtils.toShort(value, recordFieldName));
+                        break;
+                    case INT32:
+                        row.addInt(columnIndex,  DataTypeUtils.toInteger(value, recordFieldName));
+                        break;
+                    case INT64:
+                        row.addLong(columnIndex,  DataTypeUtils.toLong(value, recordFieldName));
+                        break;
+                    case UNIXTIME_MICROS:
+                        DataType fieldType = record.getSchema().getDataType(recordFieldName).get();
+                        Timestamp timestamp = DataTypeUtils.toTimestamp(record.getValue(recordFieldName),
+                                () -> DataTypeUtils.getDateFormat(fieldType.getFormat()), recordFieldName);
+                        row.addTimestamp(columnIndex, timestamp);
+                        break;
+                    case STRING:
+                        row.addString(columnIndex, DataTypeUtils.toString(value, recordFieldName));
+                        break;
+                    case BINARY:
+                        row.addBinary(columnIndex, DataTypeUtils.toString(value, recordFieldName).getBytes());
+                        break;
+                    case FLOAT:
+                        row.addFloat(columnIndex, DataTypeUtils.toFloat(value, recordFieldName));
+                        break;
+                    case DOUBLE:
+                        row.addDouble(columnIndex, DataTypeUtils.toDouble(value, recordFieldName));
+                        break;
+                    case DECIMAL:
+                        row.addDecimal(columnIndex, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
+                        break;
+                    case VARCHAR:
+                        row.addVarchar(columnIndex, DataTypeUtils.toString(value, recordFieldName));
+                        break;
+                    case DATE:
+                        row.addDate(columnIndex, DataTypeUtils.toDate(value, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()), recordFieldName));
+                        break;
+                    default:
+                        throw new IllegalStateException(String.format("unknown column type %s", colType));
                 }
             }
         }
@@ -312,7 +369,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     /**
      * Converts a NiFi DataType to it's equivalent Kudu Type.
      */
-    protected Type toKuduType(DataType nifiType) {
+    private Type toKuduType(DataType nifiType) {
         switch (nifiType.getFieldType()) {
             case BOOLEAN:
                 return Type.BOOL;
@@ -328,22 +385,48 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 return Type.FLOAT;
             case DOUBLE:
                 return Type.DOUBLE;
+            case DECIMAL:
+                return Type.DECIMAL;
             case TIMESTAMP:
                 return Type.UNIXTIME_MICROS;
             case CHAR:
             case STRING:
                 return Type.STRING;
+            case DATE:
+                return Type.DATE;
             default:
                 throw new IllegalArgumentException(String.format("unsupported type %s", nifiType));
         }
     }
 
-    private int getColumnIndex(Schema columns, String colName) {
-        try {
-            return columns.getColumnIndex(colName);
-        } catch (Exception ex) {
-            return -1;
+    private ColumnTypeAttributes getKuduTypeAttributes(final DataType nifiType) {
+        if (nifiType.getFieldType().equals(RecordFieldType.DECIMAL)) {
+            final DecimalDataType decimalDataType = (DecimalDataType) nifiType;
+            return new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(decimalDataType.getPrecision()).scale(decimalDataType.getScale()).build();
+        } else {
+            return null;
         }
+    }
+
+    /**
+     * Based on NiFi field declaration, generates an alter statement to extend table with new column. Note: simply calling
+     * {@link AlterTableOptions#addNullableColumn(String, Type)} is not sufficient as it does not cover BigDecimal scale and precision handling.
+     *
+     * @param columnName Name of the new table column.
+     * @param nifiType Type of the field.
+     *
+     * @return Alter table statement to extend table with the new field.
+     */
+    protected AlterTableOptions getAddNullableColumnStatement(final String columnName, final DataType nifiType) {
+        final AlterTableOptions alterTable = new AlterTableOptions();
+
+        alterTable.addColumn(new ColumnSchema.ColumnSchemaBuilder(columnName, toKuduType(nifiType))
+                .nullable(true)
+                .defaultValue(null)
+                .typeAttributes(getKuduTypeAttributes(nifiType))
+                .build());
+
+        return alterTable;
     }
 
     protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {

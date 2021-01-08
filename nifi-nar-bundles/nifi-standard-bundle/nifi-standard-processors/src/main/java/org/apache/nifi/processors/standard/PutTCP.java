@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -35,16 +44,6 @@ import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
-
-import javax.net.ssl.SSLContext;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -115,7 +114,7 @@ public class PutTCP extends AbstractPutEventProcessor {
 
         SSLContext sslContext = null;
         if (sslContextService != null) {
-            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         return createSender(protocol, hostname, port, timeout, bufferSize, sslContext);

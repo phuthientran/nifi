@@ -19,6 +19,19 @@ package org.apache.nifi.elasticsearch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -43,42 +56,28 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
-    private ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    static final private List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> properties;
 
     private RestClient client;
 
     private String url;
-    private Charset charset;
+    private Charset responseCharset;
 
     static {
-        List<PropertyDescriptor> _props = new ArrayList();
-        _props.add(ElasticSearchClientService.HTTP_HOSTS);
-        _props.add(ElasticSearchClientService.USERNAME);
-        _props.add(ElasticSearchClientService.PASSWORD);
-        _props.add(ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
-        _props.add(ElasticSearchClientService.CONNECT_TIMEOUT);
-        _props.add(ElasticSearchClientService.SOCKET_TIMEOUT);
-        _props.add(ElasticSearchClientService.RETRY_TIMEOUT);
-        _props.add(ElasticSearchClientService.CHARSET);
+        List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(ElasticSearchClientService.HTTP_HOSTS);
+        props.add(ElasticSearchClientService.USERNAME);
+        props.add(ElasticSearchClientService.PASSWORD);
+        props.add(ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
+        props.add(ElasticSearchClientService.CONNECT_TIMEOUT);
+        props.add(ElasticSearchClientService.SOCKET_TIMEOUT);
+        props.add(ElasticSearchClientService.RETRY_TIMEOUT);
+        props.add(ElasticSearchClientService.CHARSET);
 
-        properties = Collections.unmodifiableList(_props);
+        properties = Collections.unmodifiableList(props);
     }
 
     @Override
@@ -90,7 +89,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         try {
             setupClient(context);
-            charset = Charset.forName(context.getProperty(CHARSET).getValue());
+            responseCharset = Charset.forName(context.getProperty(CHARSET).getValue());
         } catch (Exception ex) {
             getLogger().error("Could not initialize ElasticSearch client.", ex);
             throw new InitializationException(ex);
@@ -125,44 +124,42 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final SSLContext sslContext;
         try {
             sslContext = (sslService != null && (sslService.isKeyStoreConfigured() || sslService.isTrustStoreConfigured()))
-                ? sslService.createSSLContext(SSLContextService.ClientAuth.NONE) : null;
+                    ? sslService.createContext() : null;
         } catch (Exception e) {
             getLogger().error("Error building up SSL Context from the supplied configuration.", e);
             throw new InitializationException(e);
         }
 
         RestClientBuilder builder = RestClient.builder(hh)
-            .setHttpClientConfigCallback(httpClientBuilder -> {
-                if (sslContext != null) {
-                    httpClientBuilder = httpClientBuilder.setSSLContext(sslContext);
-                }
+                .setHttpClientConfigCallback(httpClientBuilder -> {
+                    if (sslContext != null) {
+                        httpClientBuilder.setSSLContext(sslContext);
+                    }
 
-                if (username != null && password != null) {
-                    final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                    credentialsProvider.setCredentials(AuthScope.ANY,
-                            new UsernamePasswordCredentials(username, password));
-                    httpClientBuilder = httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                }
+                    if (username != null && password != null) {
+                        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                        credentialsProvider.setCredentials(AuthScope.ANY,
+                                new UsernamePasswordCredentials(username, password));
+                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                    }
 
-                return httpClientBuilder;
-            })
-            .setRequestConfigCallback(requestConfigBuilder -> {
-                requestConfigBuilder.setConnectTimeout(connectTimeout);
-                requestConfigBuilder.setSocketTimeout(readTimeout);
-                return requestConfigBuilder;
-            })
-            .setMaxRetryTimeoutMillis(retryTimeout);
+                    return httpClientBuilder;
+                })
+                .setRequestConfigCallback(requestConfigBuilder -> {
+                    requestConfigBuilder.setConnectTimeout(connectTimeout);
+                    requestConfigBuilder.setSocketTimeout(readTimeout);
+                    return requestConfigBuilder;
+                })
+                .setMaxRetryTimeoutMillis(retryTimeout);
 
         this.client = builder.build();
     }
 
     private Response runQuery(String endpoint, String query, String index, String type) {
         StringBuilder sb = new StringBuilder()
-            .append("/")
-            .append(index);
+            .append("/").append(index);
         if (type != null && !type.equals("")) {
-            sb.append("/")
-            .append(type);
+            sb.append("/").append(type);
         }
 
         sb.append(String.format("/%s", endpoint));
@@ -180,11 +177,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final int code = response.getStatusLine().getStatusCode();
 
         try {
-            if (code >= 200 & code < 300) {
+            if (code >= 200 && code < 300) {
                 InputStream inputStream = response.getEntity().getContent();
                 byte[] result = IOUtils.toByteArray(inputStream);
                 inputStream.close();
-                return mapper.readValue(new String(result, charset), Map.class);
+                return (Map<String, Object>) mapper.readValue(new String(result, responseCharset), Map.class);
             } else {
                 String errorMessage = String.format("ElasticSearch reported an error while trying to run the query: %s",
                         response.getStatusLine().getReasonPhrase());
@@ -197,7 +194,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     @Override
     public IndexOperationResponse add(IndexOperationRequest operation) {
-        return bulk(Arrays.asList(operation));
+        return bulk(Collections.singletonList(operation));
     }
 
     private String flatten(String str) {
@@ -215,8 +212,12 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         Map<String, Object> header = new HashMap<String, Object>() {{
             put(operation, new HashMap<String, Object>() {{
                 put("_index", index);
-                put("_id", id);
-                put("_type", type);
+                if (StringUtils.isNotBlank(id)) {
+                    put("_id", id);
+                }
+                if (StringUtils.isNotBlank(type)) {
+                    put("_type", type);
+                }
             }});
         }};
 
@@ -226,19 +227,28 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     protected void buildRequest(IndexOperationRequest request, StringBuilder builder) throws JsonProcessingException {
         String header = buildBulkHeader(request);
         builder.append(header).append("\n");
-        if (request.getOperation().equals(IndexOperationRequest.Operation.Index)) {
-            String indexDocument = mapper.writeValueAsString(request.getFields());
-            builder.append(indexDocument).append("\n");
-        } else if (request.getOperation().equals(IndexOperationRequest.Operation.Update)
-            || request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
-            Map<String, Object> doc = new HashMap<String, Object>() {{
-                put("doc", request.getFields());
-                if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
-                    put("doc_as_upsert", true);
-                }
-            }};
-            String update = flatten(mapper.writeValueAsString(doc)).trim();
-            builder.append(String.format("%s\n", update));
+        switch (request.getOperation()) {
+            case Index:
+            case Create:
+                String indexDocument = mapper.writeValueAsString(request.getFields());
+                builder.append(indexDocument).append("\n");
+                break;
+            case Update:
+            case Upsert:
+                Map<String, Object> doc = new HashMap<String, Object>() {{
+                    put("doc", request.getFields());
+                    if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
+                        put("doc_as_upsert", true);
+                    }
+                }};
+                String update = flatten(mapper.writeValueAsString(doc)).trim();
+                builder.append(update).append("\n");
+                break;
+            case Delete:
+                // nothing to do for Delete operations, it just needs the header
+                break;
+            default:
+                throw new IllegalArgumentException(String.format("Unhandled Index Operation type: %s", request.getOperation().name()));
         }
     }
 
@@ -246,8 +256,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public IndexOperationResponse bulk(List<IndexOperationRequest> operations) {
         try {
             StringBuilder payload = new StringBuilder();
-            for (int index = 0; index < operations.size(); index++) {
-                IndexOperationRequest or = operations.get(index);
+            for (final IndexOperationRequest or : operations) {
                 buildRequest(or, payload);
             }
 
@@ -260,15 +269,13 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             Response response = client.performRequest("POST", "/_bulk", Collections.emptyMap(), entity);
             watch.stop();
 
-            String rawResponse = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
+            String rawResponse = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
 
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug(String.format("Response was: %s", rawResponse));
             }
 
-            IndexOperationResponse retVal = IndexOperationResponse.fromJsonResponse(rawResponse);
-
-            return retVal;
+            return IndexOperationResponse.fromJsonResponse(rawResponse);
         } catch (Exception ex) {
             throw new ElasticsearchError(ex);
         }
@@ -284,15 +291,15 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     @Override
     public DeleteOperationResponse deleteById(String index, String type, String id) {
-        return deleteById(index, type, Arrays.asList(id));
+        return deleteById(index, type, Collections.singletonList(id));
     }
 
     @Override
     public DeleteOperationResponse deleteById(String index, String type, List<String> ids) {
         try {
             StringBuilder sb = new StringBuilder();
-            for (int idx = 0; idx < ids.size(); idx++) {
-                String header = buildBulkHeader("delete", index, type, ids.get(idx));
+            for (final String id : ids) {
+                String header = buildBulkHeader("delete", index, type, id);
                 sb.append(header).append("\n");
             }
             HttpEntity entity = new NStringEntity(sb.toString(), ContentType.APPLICATION_JSON);
@@ -303,12 +310,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug(String.format("Response for bulk delete: %s",
-                        IOUtils.toString(response.getEntity().getContent(), "UTF-8")));
+                        IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8)));
             }
 
-            DeleteOperationResponse dor = new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
-
-            return dor;
+            return new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -319,7 +324,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         long start = System.currentTimeMillis();
         Response response = runQuery("_delete_by_query", query, index, type);
         long end   = System.currentTimeMillis();
-        Map<String, Object> parsed = parseResponse(response);
+
+        // check for errors in response
+        parseResponse(response);
 
         return new DeleteOperationResponse(end - start);
     }
@@ -335,7 +342,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             endpoint.append("/").append(id);
             Response response = client.performRequest("GET", endpoint.toString(), new BasicHeader("Content-Type", "application/json"));
 
-            String body = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
+            String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
 
             return (Map<String, Object>) mapper.readValue(body, Map.class).get("_source");
         } catch (Exception ex) {
@@ -349,9 +356,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
      */
     private int handleSearchCount(Object raw) {
         if (raw instanceof Number) {
-            return Integer.valueOf(raw.toString());
+            return Integer.parseInt(raw.toString());
         } else if (raw instanceof Map) {
-            return (Integer)((Map)raw).get("value");
+            return (Integer)((Map<String, Object>)raw).get("value");
         } else {
             throw new ProcessException("Unknown type for hit count.");
         }
@@ -391,11 +398,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     @Override
     public String getTransitUrl(String index, String type) {
         return new StringBuilder()
-            .append(this.url)
-            .append(index != null && !index.equals("") ? "/" : "")
-            .append(index != null ? index : "")
-            .append(type != null && !type.equals("") ? "/" : "")
-            .append(type != null ? type : "")
-            .toString();
+                .append(this.url)
+                .append(StringUtils.isNotBlank(index) ? "/" : "")
+                .append(StringUtils.isNotBlank(index) ? index : "")
+                .append(StringUtils.isNotBlank(type) ? "/" : "")
+                .append(StringUtils.isNotBlank(type) ? type : "")
+                .toString();
     }
 }

@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.net.Socket;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -40,16 +48,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.net.Socket;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-
 public class TestListenRELP {
+
+    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
+    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
 
     public static final String OPEN_FRAME_DATA = "relp_version=0\nrelp_software=librelp,1.2.7,http://librelp.adiscon.com\ncommands=syslog";
     public static final String SYSLOG_FRAME_DATA = "this is a syslog message here";
@@ -152,7 +154,7 @@ public class TestListenRELP {
     public void testTLS() throws InitializationException, IOException, InterruptedException {
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TLS_PROTOCOL_VERSION);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
@@ -161,7 +163,7 @@ public class TestListenRELP {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(ListenRELP.SSL_CONTEXT_SERVICE, "ssl-context");
 
         final List<RELPFrame> frames = new ArrayList<>();
         frames.add(OPEN_FRAME);
@@ -223,7 +225,7 @@ public class TestListenRELP {
 
             // create either a regular socket or ssl socket based on context being passed in
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+                final SSLContext sslContext = sslContextService.createContext();
                 socket = sslContext.getSocketFactory().createSocket("localhost", realPort);
             } else {
                 socket = new Socket("localhost", realPort);
@@ -280,7 +282,7 @@ public class TestListenRELP {
     // Extend ListenRELP so we can use the CapturingSocketChannelResponseDispatcher
     private static class ResponseCapturingListenRELP extends ListenRELP {
 
-        private List<RELPResponse> responses = new ArrayList<>();
+        private final List<RELPResponse> responses = new ArrayList<>();
 
         @Override
         protected void respond(RELPEvent event, RELPResponse relpResponse) {
@@ -292,7 +294,7 @@ public class TestListenRELP {
     // Extend ListenRELP to mock the ChannelDispatcher and allow us to return staged events
     private static class MockListenRELP extends ListenRELP {
 
-        private List<RELPEvent> mockEvents;
+        private final List<RELPEvent> mockEvents;
 
         public MockListenRELP(List<RELPEvent> mockEvents) {
             this.mockEvents = mockEvents;
