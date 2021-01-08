@@ -2367,6 +2367,7 @@ NiFi webapps on different nodes should have a separate `<Location>` entry simila
     ProxyPassReverse http://node1-host[:port]/node1/nifi
     ...
 </Location>
+...
 <Location "/node1/nifi-api">
     ...
     RequestHeader add X-ProxyScheme "http"
@@ -2386,6 +2387,7 @@ NiFi webapps on different nodes should have a separate `<Location>` entry simila
     ProxyPassReverse http://node2-host[:port]/node2/nifi
     ...
 </Location>
+...
 <Location "/node2/nifi-api">
     ...
     RequestHeader add X-ProxyScheme "http"
@@ -3312,15 +3314,12 @@ For example, when running in a Docker container or behind a proxy (e.g. localhos
 host[:port] that NiFi is bound to.
 |`nifi.web.proxy.context.path`|A comma separated list of allowed HTTP X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header values to consider. By default, this value is
 blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
-<<<<<<< Upstream, based on origin/master
 |`nifi.web.max.content.size`|The maximum size for PUT and POST requests.  The default value is `20 MB`.
 |`nifi.web.max.requests.per.second`|The maximum number of requests from a connection per second. Requests in excess of this are first delayed, then throttled.
-=======
 |`nifi.web.context.root`|The name of a web context root that all NiFi's webapp contexts including `/nifi`, `/nifi-api`, `/nifi-docs`, `/nifi-content-viewer` and others should be bound to. 
 This is intended for those same webapps from different cluster nodes to be accessible from behind a proxy. For example, if a cluster had two nodes, `node1` and `node2`
 could be set as the context root for them. Then, the proxy would be able to make the NiFi UI on both nodes accessible at `+http://proxy-host[:port]/node1/nifi+` 
 and `+http://proxy-host[:port]/node2/nifi+` respectively. See <<proxy_configuration>> for example proxy rules.
->>>>>>> 19dc498 Add description for new nifi.web.context.root property. Correct tab to spaces on text lines.
 |====
 
 [[security_properties]]
