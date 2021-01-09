@@ -32,17 +32,17 @@ public interface FlowFileEventRepository extends Closeable {
 
     /**
      * @param now the current time
-     * @return a report of processing activity
+     * @return a report of processing activity since the given time
      */
     RepositoryStatusReport reportTransferEvents(long now);
 
     /**
-     * Reports events for a given component
-     * @param componentId the ID of the component
-     * @param now the current time
-     * @return a report of processing activity
+     * Causes any flow file events of the given entry age in epoch milliseconds
+     * or older to be purged from the repository
+     *
+     * @param cutoffEpochMilliseconds cutoff
      */
-    FlowFileEvent reportTransferEvents(String componentId, long now);
+    void purgeTransferEvents(long cutoffEpochMilliseconds);
 
     /**
      * Causes any flow file events of the given component to be purged from the

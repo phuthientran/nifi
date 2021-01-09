@@ -55,7 +55,6 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupEndpointM
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorDiagnosticsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorEndpointMerger;
-import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorRunStatusDetailsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorsEndpointMerger;
@@ -116,7 +115,6 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new RemoteProcessGroupStatusEndpointMerger());
         endpointMergers.add(new ProcessorEndpointMerger());
         endpointMergers.add(new ProcessorsEndpointMerger());
-        endpointMergers.add(new ProcessorRunStatusDetailsEndpointMerger());
         endpointMergers.add(new ConnectionEndpointMerger());
         endpointMergers.add(new ConnectionsEndpointMerger());
         endpointMergers.add(new PortEndpointMerger());
