@@ -69,14 +69,13 @@ public class CreateUserGroup extends AbstractNiFiRegistryCommand<StringResult> {
 
         final String groupName = getRequiredArg(properties, CommandOption.UG_NAME);
 
-        Set<Tenant> users = TenantHelper.selectExistingTenants(
-            getArg(properties, CommandOption.USER_NAME_LIST),
-            getArg(properties, CommandOption.USER_ID_LIST),
-            tenantsClient.getUsers()
-        );
+        final Set<Tenant> tenants = TenantHelper.getExistingUsers(
+                tenantsClient,
+                getArg(properties, CommandOption.USER_NAME_LIST),
+                getArg(properties, CommandOption.USER_ID_LIST));
 
         final UserGroup group = new UserGroup(null, groupName);
-        group.setUsers(users);
+        group.setUsers(tenants);
 
         final UserGroup createdGroup = tenantsClient.createUserGroup(group);
         return new StringResult(createdGroup.getIdentifier(), getContext().isInteractive());

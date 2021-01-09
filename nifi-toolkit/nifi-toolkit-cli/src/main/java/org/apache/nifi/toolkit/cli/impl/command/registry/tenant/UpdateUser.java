@@ -26,17 +26,18 @@ import org.apache.nifi.toolkit.cli.impl.client.ExtendedNiFiRegistryClient;
 import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 
 import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Command for updating an existing user.
+ * Command for update an existing user.
  */
-public class UpdateUser extends AbstractNiFiRegistryCommand<VoidResult> {
+public class UpdateUser extends AbstractNiFiRegistryCommand<StringResult> {
+
     public UpdateUser() {
-        super("update-user", VoidResult.class);
+        super("update-user", StringResult.class);
     }
 
     @Override
@@ -54,7 +55,7 @@ public class UpdateUser extends AbstractNiFiRegistryCommand<VoidResult> {
     }
 
     @Override
-    public VoidResult doExecute(final NiFiRegistryClient client, final Properties properties)
+    public StringResult doExecute(final NiFiRegistryClient client, final Properties properties)
         throws IOException, NiFiRegistryException, ParseException {
 
         if (!(client instanceof ExtendedNiFiRegistryClient)) {
@@ -72,8 +73,7 @@ public class UpdateUser extends AbstractNiFiRegistryCommand<VoidResult> {
             existingUser.setIdentity(userName);
         }
 
-        tenantsClient.updateUser(existingUser);
-
-        return VoidResult.getInstance();
+        final User updatedUser = tenantsClient.updateUser(existingUser);
+        return new StringResult(updatedUser.getIdentifier(), getContext().isInteractive());
     }
 }

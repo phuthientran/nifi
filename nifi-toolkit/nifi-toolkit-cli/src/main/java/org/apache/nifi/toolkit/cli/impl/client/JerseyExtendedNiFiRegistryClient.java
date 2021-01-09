@@ -69,16 +69,17 @@ public class JerseyExtendedNiFiRegistryClient implements ExtendedNiFiRegistryCli
     static final int DEFAULT_CONNECT_TIMEOUT = 10000;
     static final int DEFAULT_READ_TIMEOUT = 10000;
 
-    private final NiFiRegistryClient delegate;
+    private final NiFiRegistryClient payload;
     private final Client client;
     private final WebTarget baseTarget;
     private final TenantsClient tenantsClient;
     private final PoliciesClient policiesClient;
 
-    public JerseyExtendedNiFiRegistryClient(final NiFiRegistryClient delegate, final NiFiRegistryClientConfig registryClientConfig) {
-        this.delegate = delegate;
+    public JerseyExtendedNiFiRegistryClient(final NiFiRegistryClient payload, final NiFiRegistryClient.Builder builder) {
+        this.payload = payload;
 
         // Copied from JerseyNiFiRegistryClient!
+        final NiFiRegistryClientConfig registryClientConfig = builder.getConfig();
         if (registryClientConfig == null) {
             throw new IllegalArgumentException("NiFiRegistryClientConfig cannot be null");
         }
@@ -157,97 +158,97 @@ public class JerseyExtendedNiFiRegistryClient implements ExtendedNiFiRegistryCli
 
     @Override
     public BucketClient getBucketClient() {
-        return delegate.getBucketClient();
+        return payload.getBucketClient();
     }
 
     @Override
     public BucketClient getBucketClient(final String... proxiedEntity) {
-        return delegate.getBucketClient(proxiedEntity);
+        return payload.getBucketClient(proxiedEntity);
     }
 
     @Override
     public FlowClient getFlowClient() {
-        return delegate.getFlowClient();
+        return payload.getFlowClient();
     }
 
     @Override
     public FlowClient getFlowClient(final String... proxiedEntity) {
-        return delegate.getFlowClient(proxiedEntity);
+        return payload.getFlowClient(proxiedEntity);
     }
 
     @Override
     public FlowSnapshotClient getFlowSnapshotClient() {
-        return delegate.getFlowSnapshotClient();
+        return payload.getFlowSnapshotClient();
     }
 
     @Override
     public FlowSnapshotClient getFlowSnapshotClient(final String... proxiedEntity) {
-        return delegate.getFlowSnapshotClient(proxiedEntity);
+        return payload.getFlowSnapshotClient(proxiedEntity);
     }
 
     @Override
     public ItemsClient getItemsClient() {
-        return delegate.getItemsClient();
+        return payload.getItemsClient();
     }
 
     @Override
     public ItemsClient getItemsClient(final String... proxiedEntity) {
-        return delegate.getItemsClient(proxiedEntity);
+        return payload.getItemsClient(proxiedEntity);
     }
 
     @Override
     public UserClient getUserClient() {
-        return delegate.getUserClient();
+        return payload.getUserClient();
     }
 
     @Override
     public UserClient getUserClient(final String... proxiedEntity) {
-        return delegate.getUserClient(proxiedEntity);
+        return payload.getUserClient(proxiedEntity);
     }
 
     @Override
     public BundleClient getBundleClient() {
-        return delegate.getBundleClient();
+        return payload.getBundleClient();
     }
 
     @Override
     public BundleClient getBundleClient(final String... proxiedEntity) {
-        return delegate.getBundleClient(proxiedEntity);
+        return payload.getBundleClient(proxiedEntity);
     }
 
     @Override
     public BundleVersionClient getBundleVersionClient() {
-        return delegate.getBundleVersionClient();
+        return payload.getBundleVersionClient();
     }
 
     @Override
     public BundleVersionClient getBundleVersionClient(final String... proxiedEntity) {
-        return delegate.getBundleVersionClient(proxiedEntity);
+        return payload.getBundleVersionClient(proxiedEntity);
     }
 
     @Override
     public ExtensionRepoClient getExtensionRepoClient() {
-        return delegate.getExtensionRepoClient();
+        return payload.getExtensionRepoClient();
     }
 
     @Override
     public ExtensionRepoClient getExtensionRepoClient(final String... proxiedEntity) {
-        return delegate.getExtensionRepoClient(proxiedEntity);
+        return payload.getExtensionRepoClient(proxiedEntity);
     }
 
     @Override
     public ExtensionClient getExtensionClient() {
-        return delegate.getExtensionClient();
+        return payload.getExtensionClient();
     }
 
     @Override
     public ExtensionClient getExtensionClient(final String... proxiedEntity) {
-        return delegate.getExtensionClient(proxiedEntity);
+        return payload.getExtensionClient(proxiedEntity);
     }
 
     @Override
     public void close() throws IOException {
-        delegate.close();
+        payload.close();
 
         if (this.client != null) {
             try {

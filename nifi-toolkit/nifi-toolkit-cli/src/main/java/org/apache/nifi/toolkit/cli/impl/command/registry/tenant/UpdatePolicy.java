@@ -18,12 +18,13 @@ package org.apache.nifi.toolkit.cli.impl.command.registry.tenant;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.registry.authorization.AccessPolicy;
 import org.apache.nifi.registry.authorization.Tenant;
-import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.ExtendedNiFiRegistryClient;
+import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
@@ -34,58 +35,78 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Command for update an existing user group.
+ * Command for update an existing policy.
  */
-public class UpdateUserGroup extends AbstractNiFiRegistryCommand<StringResult> {
+public class UpdatePolicy extends AbstractNiFiRegistryCommand<StringResult> {
 
-    public UpdateUserGroup() {
-        super("update-user-group", StringResult.class);
+    public UpdatePolicy() {
+        super("update-policy", StringResult.class);
     }
 
     @Override
     public String getDescription() {
-        return "Updates existing user group.";
+        return "Updates an existing access policy.";
     }
 
     @Override
     protected void doInitialize(final Context context) {
         // Required
-        addOption(CommandOption.UG_ID.createOption());
+        addOption(CommandOption.POLICY_ID.createOption());
 
         // Optional
-        addOption(CommandOption.UG_NAME.createOption());
+        addOption(CommandOption.POLICY_RESOURCE.createOption());
+        addOption(CommandOption.POLICY_ACTION.createOption());
         addOption(CommandOption.USER_NAME_LIST.createOption());
         addOption(CommandOption.USER_ID_LIST.createOption());
+        addOption(CommandOption.GROUP_NAME_LIST.createOption());
+        addOption(CommandOption.GROUP_ID_LIST.createOption());
     }
 
     @Override
     public StringResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
+
         if (!(client instanceof ExtendedNiFiRegistryClient)) {
             throw new IllegalArgumentException("This command needs extended registry client!");
         }
 
         final ExtendedNiFiRegistryClient extendedClient = (ExtendedNiFiRegistryClient) client;
+        final PoliciesClient policiesClient = extendedClient.getPoliciesClient();
         final TenantsClient tenantsClient = extendedClient.getTenantsClient();
-        final String groupId = getRequiredArg(properties, CommandOption.UG_ID);
-        final UserGroup existingGroup = tenantsClient.getUserGroup(groupId);
 
-        // Update group name
-        final String groupName = getArg(properties, CommandOption.UG_NAME);
+        final String policyId = getRequiredArg(properties, CommandOption.POLICY_ID);
+        final String resource = getArg(properties, CommandOption.POLICY_RESOURCE);
+        final String action = getArg(properties, CommandOption.POLICY_ACTION);
 
-        if (StringUtils.isNotBlank(groupName)) {
-            existingGroup.setIdentity(groupName);
+        final AccessPolicy existingPolicy = policiesClient.getPolicy(policyId);
+
+        if (StringUtils.isNotBlank(resource)) {
+            existingPolicy.setResource(resource);
         }
 
-        // Update group members
-        final Set<Tenant> tenants = TenantHelper.getExistingUsers(
+        if (StringUtils.isNotBlank(action)) {
+            existingPolicy.setAction(action);
+        }
+
+        final Set<Tenant> users = TenantHelper.getExistingUsers(
                 tenantsClient,
                 getArg(properties, CommandOption.USER_NAME_LIST),
                 getArg(properties, CommandOption.USER_ID_LIST));
 
-        existingGroup.setUsers(tenants);
+        if (StringUtils.isNotBlank(getArg(properties, CommandOption.USER_NAME_LIST)) || StringUtils.isNotBlank(getArg(properties, CommandOption.USER_ID_LIST))) {
+            existingPolicy.setUsers(users);
+        }
 
-        final UserGroup updatedGroup = tenantsClient.updateUserGroup(existingGroup);
-        return new StringResult(updatedGroup.getIdentifier(), getContext().isInteractive());
+        final Set<Tenant> userGroups = TenantHelper.getExistingGroups(
+                tenantsClient,
+                getArg(properties, CommandOption.GROUP_NAME_LIST),
+                getArg(properties, CommandOption.GROUP_ID_LIST));
+
+        if (StringUtils.isNotBlank(getArg(properties, CommandOption.GROUP_NAME_LIST)) || StringUtils.isNotBlank(getArg(properties, CommandOption.GROUP_ID_LIST))) {
+            existingPolicy.setUserGroups(userGroups);
+        }
+
+        final AccessPolicy updatedPolicy = policiesClient.updatePolicy(existingPolicy);
+        return new StringResult(updatedPolicy.getIdentifier(), getContext().isInteractive());
     }
 }
