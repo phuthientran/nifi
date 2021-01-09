@@ -16,12 +16,21 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -36,20 +45,19 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
-
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsDetails;
 
 public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
     public static final String PAGE = "Page";
 
+    public static final String STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME = "storage-account-name";
+    public static final String STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME = "storage-account-key";
+    public static final String STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME = "storage-sas-token";
+    public static final String STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME = "storage-endpoint-suffix";
+
     public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
-            .name("storage-account-key")
+            .name(STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME)
             .displayName("Storage Account Key")
             .description("The storage account key. This is an admin-like password providing access to every container in this account. It is recommended " +
                     "one uses Shared Access Signature (SAS) token instead for fine-grained control with policies. " +
@@ -72,7 +80,7 @@ public final class AzureStorageUtils {
             "In addition, the provenance repositories may be put on encrypted disk partitions.";
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
-            .name("storage-account-name")
+            .name(STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME)
             .displayName("Storage Account Name")
             .description(ACCOUNT_NAME_BASE_DESCRIPTION +
                     " Instead of defining the Storage Account Name, Storage Account Key and SAS Token properties directly on the processor, " +
@@ -85,17 +93,32 @@ public final class AzureStorageUtils {
             .sensitive(true)
             .build();
 
+    public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
+            .name(STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME)
+            .displayName("Common Storage Account Endpoint Suffix")
+            .description(
+                    "Storage accounts in public Azure always use a common FQDN suffix. " +
+                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions). " +
+                    "The preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
+                    "The controller service can provide a common/shared configuration for multiple/all Azure processors. Furthermore, the credentials " +
+                    "can also be looked up dynamically with the 'Lookup' version of the service.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .sensitive(false)
+            .build();
+
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .name("container-name")
             .displayName("Container Name")
-            .description("Name of the Azure storage container")
+            .description("Name of the Azure storage container. In case of PutAzureBlobStorage processor, container can be created if it does not exist.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
     public static final PropertyDescriptor PROP_SAS_TOKEN = new PropertyDescriptor.Builder()
-            .name("storage-sas-token")
+            .name(STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME)
             .displayName("SAS Token")
             .description("Shared Access Signature token, including the leading '?'. Specify either SAS Token (recommended) or Account Key. " +
                     "There are certain risks in allowing the SAS token to be stored as a flowfile " +
@@ -131,10 +154,29 @@ public final class AzureStorageUtils {
      */
     public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger, FlowFile flowFile) throws URISyntaxException {
         final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
-        final CloudStorageAccount cloudStorageAccount = new CloudStorageAccount(storageCredentialsDetails.getStorageCredentials(), true, null, storageCredentialsDetails.getStorageAccountName());
+        final CloudStorageAccount cloudStorageAccount = getCloudStorageAccount(storageCredentialsDetails);
         final CloudBlobClient cloudBlobClient = cloudStorageAccount.createCloudBlobClient();
-
         return cloudBlobClient;
+    }
+
+    public static CloudStorageAccount getCloudStorageAccount(final AzureStorageCredentialsDetails storageCredentialsDetails) throws URISyntaxException {
+        final CloudStorageAccount cloudStorageAccount;
+        if (storageCredentialsDetails instanceof AzureStorageEmulatorCredentialsDetails) {
+            AzureStorageEmulatorCredentialsDetails emulatorCredentials = (AzureStorageEmulatorCredentialsDetails) storageCredentialsDetails;
+            final String proxyUri = emulatorCredentials.getDevelopmentStorageProxyUri();
+            if (proxyUri != null) {
+                cloudStorageAccount = CloudStorageAccount.getDevelopmentStorageAccount(new URI(proxyUri));
+            } else {
+                cloudStorageAccount = CloudStorageAccount.getDevelopmentStorageAccount();
+            }
+        } else {
+            cloudStorageAccount = new CloudStorageAccount(
+                storageCredentialsDetails.getStorageCredentials(),
+                true,
+                storageCredentialsDetails.getStorageSuffix(),
+                storageCredentialsDetails.getStorageAccountName());
+        }
+        return cloudStorageAccount;
     }
 
     public static AzureStorageCredentialsDetails getStorageCredentialsDetails(PropertyContext context, FlowFile flowFile) {
@@ -151,6 +193,7 @@ public final class AzureStorageUtils {
 
     public static AzureStorageCredentialsDetails createStorageCredentialsDetails(PropertyContext context, Map<String, String> attributes) {
         final String accountName = context.getProperty(ACCOUNT_NAME).evaluateAttributeExpressions(attributes).getValue();
+        final String storageSuffix = context.getProperty(ENDPOINT_SUFFIX).evaluateAttributeExpressions(attributes).getValue();
         final String accountKey = context.getProperty(ACCOUNT_KEY).evaluateAttributeExpressions(attributes).getValue();
         final String sasToken = context.getProperty(PROP_SAS_TOKEN).evaluateAttributeExpressions(attributes).getValue();
 
@@ -168,7 +211,7 @@ public final class AzureStorageUtils {
             throw new IllegalArgumentException(String.format("Either '%s' or '%s' must be defined.", ACCOUNT_KEY.getDisplayName(), PROP_SAS_TOKEN.getDisplayName()));
         }
 
-        return new AzureStorageCredentialsDetails(accountName, storageCredentials);
+        return new AzureStorageCredentialsDetails(accountName, storageSuffix, storageCredentials);
     }
 
     public static Collection<ValidationResult> validateCredentialProperties(ValidationContext validationContext) {
@@ -178,6 +221,7 @@ public final class AzureStorageUtils {
         final String accountName = validationContext.getProperty(ACCOUNT_NAME).getValue();
         final String accountKey = validationContext.getProperty(ACCOUNT_KEY).getValue();
         final String sasToken = validationContext.getProperty(PROP_SAS_TOKEN).getValue();
+        final String endpointSuffix = validationContext.getProperty(ENDPOINT_SUFFIX).getValue();
 
         if (!((StringUtils.isNotBlank(storageCredentials) && StringUtils.isBlank(accountName) && StringUtils.isBlank(accountKey) && StringUtils.isBlank(sasToken))
                 || (StringUtils.isBlank(storageCredentials) && StringUtils.isNotBlank(accountName) && StringUtils.isNotBlank(accountKey) && StringUtils.isBlank(sasToken))
@@ -188,6 +232,14 @@ public final class AzureStorageUtils {
                             + ", or " + ACCOUNT_NAME.getDisplayName() + " with " + ACCOUNT_KEY.getDisplayName()
                             + " or " + ACCOUNT_NAME.getDisplayName() + " with " + PROP_SAS_TOKEN.getDisplayName() + " must be specified")
                     .build());
+        }
+
+        if(StringUtils.isNotBlank(storageCredentials) && StringUtils.isNotBlank(endpointSuffix)) {
+            String errMsg = "Either " + STORAGE_CREDENTIALS_SERVICE.getDisplayName() + " or " + ENDPOINT_SUFFIX.getDisplayName()
+                + " should be specified, not both.";
+            results.add(new ValidationResult.Builder().subject("AzureStorageUtils Credentials")
+                        .explanation(errMsg)
+                        .build());
         }
 
         return results;

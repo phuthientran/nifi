@@ -22,7 +22,9 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
-import org.apache.commons.lang3.StringUtils;
+import java.util.ArrayList;
+import java.util.List;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -31,12 +33,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
-
-import javax.net.ssl.SSLContext;
-import java.util.ArrayList;
-import java.util.List;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
@@ -62,6 +59,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     protected MongoClient mongoClient;
 
+    // TODO: Remove duplicate code by refactoring shared method to accept PropertyContext
     protected final void createClient(ConfigurationContext context) {
         if (mongoClient != null) {
             closeClient();
@@ -71,24 +69,12 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
         // Set up the client for secure (SSL/TLS communications) if configured to do so
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
         final SSLContext sslContext;
 
-        if (sslService != null) {
-            final SSLContextService.ClientAuth clientAuth;
-            if (StringUtils.isBlank(rawClientAuth)) {
-                clientAuth = SSLContextService.ClientAuth.REQUIRED;
-            } else {
-                try {
-                    clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
-                } catch (final IllegalArgumentException iae) {
-                    throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                            rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
-                }
-            }
-            sslContext = sslService.createSSLContext(clientAuth);
-        } else {
+        if (sslService == null) {
             sslContext = null;
+        } else {
+            sslContext = sslService.createContext();
         }
 
         try {

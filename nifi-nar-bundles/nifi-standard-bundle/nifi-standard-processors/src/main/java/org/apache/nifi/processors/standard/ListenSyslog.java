@@ -40,6 +40,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.DatagramChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
@@ -48,7 +50,7 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.handler.socket.SocketChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
@@ -60,7 +62,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
@@ -185,8 +186,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .displayName("Client Auth")
         .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
         .required(false)
-        .allowableValues(SSLContextService.ClientAuth.values())
-        .defaultValue(SSLContextService.ClientAuth.REQUIRED.name())
+        .allowableValues(ClientAuth.values())
+        .defaultValue(ClientAuth.REQUIRED.name())
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -203,9 +204,9 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     private volatile ChannelDispatcher channelDispatcher;
     private volatile SyslogParser parser;
-    private volatile BlockingQueue<ByteBuffer> bufferPool;
+    private volatile ByteBufferSource byteBufferSource;
     private volatile BlockingQueue<RawSyslogEvent> syslogEvents;
-    private volatile BlockingQueue<RawSyslogEvent> errorEvents = new LinkedBlockingQueue<>();
+    private final BlockingQueue<RawSyslogEvent> errorEvents = new LinkedBlockingQueue<>();
     private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
 
     @Override
@@ -304,11 +305,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             maxConnections = context.getProperty(MAX_CONNECTIONS).asLong().intValue();
         }
 
-        bufferPool = new LinkedBlockingQueue<>(maxConnections);
-        for (int i = 0; i < maxConnections; i++) {
-            bufferPool.offer(ByteBuffer.allocate(bufferSize));
-        }
-
+        byteBufferSource = new ByteBufferPool(maxConnections, bufferSize);
         parser = new SyslogParser(Charset.forName(charSet));
         syslogEvents = new LinkedBlockingQueue<>(maxMessageQueueSize);
 
@@ -320,7 +317,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
         // create either a UDP or TCP reader and call open() to bind to the given port
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        channelDispatcher = createChannelReader(context, protocol, bufferPool, syslogEvents, maxConnections, sslContextService, Charset.forName(charSet));
+        channelDispatcher = createChannelReader(context, protocol, byteBufferSource, syslogEvents, maxConnections, sslContextService, Charset.forName(charSet));
         channelDispatcher.open(nicIPAddress, port, maxChannelBufferSize);
 
         final Thread readerThread = new Thread(channelDispatcher);
@@ -335,27 +332,27 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     }
 
     // visible for testing to be overridden and provide a mock ChannelDispatcher if desired
-    protected ChannelDispatcher createChannelReader(final ProcessContext context, final String protocol, final BlockingQueue<ByteBuffer> bufferPool,
+    protected ChannelDispatcher createChannelReader(final ProcessContext context, final String protocol, final ByteBufferSource byteBufferSource,
                                                     final BlockingQueue<RawSyslogEvent> events, final int maxConnections,
                                                     final SSLContextService sslContextService, final Charset charset) throws IOException {
 
         final EventFactory<RawSyslogEvent> eventFactory = new RawSyslogEventFactory();
 
         if (UDP_VALUE.getValue().equals(protocol)) {
-            return new DatagramChannelDispatcher(eventFactory, bufferPool, events, getLogger());
+            return new DatagramChannelDispatcher(eventFactory, byteBufferSource, events, getLogger());
         } else {
             // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
             SSLContext sslContext = null;
-            SslContextFactory.ClientAuth clientAuth = null;
+            ClientAuth clientAuth = null;
 
             if (sslContextService != null) {
                 final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-                sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.valueOf(clientAuthValue));
-                clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
+                sslContext = sslContextService.createContext();
+                clientAuth = ClientAuth.valueOf(clientAuthValue);
             }
 
             final ChannelHandlerFactory<RawSyslogEvent<SocketChannel>, AsyncChannelDispatcher> handlerFactory = new SocketChannelHandlerFactory<>();
-            return new SocketChannelDispatcher(eventFactory, handlerFactory, bufferPool, events, getLogger(), maxConnections, sslContext, clientAuth, charset);
+            return new SocketChannelDispatcher(eventFactory, handlerFactory, byteBufferSource, events, getLogger(), maxConnections, sslContext, clientAuth, charset);
         }
     }
 

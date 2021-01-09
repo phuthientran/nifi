@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web;
 
+import io.prometheus.client.CollectorRegistry;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -108,6 +109,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
@@ -317,7 +319,7 @@ public interface NiFiServiceFacade {
     /**
      * Gets the metrics for the flow.
      */
-    void generateFlowMetrics();
+    Collection<CollectorRegistry> generateFlowMetrics();
 
     /**
      * Updates the configuration for this controller.
@@ -581,6 +583,15 @@ public interface NiFiServiceFacade {
      */
     StatusHistoryEntity getProcessorStatusHistory(String id);
 
+    // ----------------------------------------
+    // System diagnostics history
+    // ----------------------------------------
+
+    /**
+     * @return the system diagnostics history
+     */
+    StatusHistoryEntity getNodeStatusHistory();
+
     /**
      * Get the descriptor for the specified property of the specified processor.
      *
@@ -598,6 +609,13 @@ public interface NiFiServiceFacade {
      * @return List of all the Processor transfer object
      */
     Set<ProcessorEntity> getProcessors(String groupId, boolean includeDescendants);
+
+    /**
+     * Provides a ProcessorsRunStatusDetails that describes the current details of the run status for each processor whose id is provided
+     * @param processorIds the set of all processor IDs that should be included
+     * @return a ProcessorsRunStatusDetailsEntity that describes the current information about the processors' run status
+     */
+    ProcessorsRunStatusDetailsEntity getProcessorsRunStatusDetails(Set<String> processorIds, NiFiUser user);
 
     /**
      * Verifies the specified processor can be updated.
@@ -1198,6 +1216,33 @@ public interface NiFiServiceFacade {
      * @param groupId The id of the process group
      */
     void verifyDeleteProcessGroup(String groupId);
+
+    /**
+     * Creates a request to drop flowfiles in all connections in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO createDropAllFlowFilesInProcessGroup(final String processGroupId, final String dropRequestId);
+
+    /**
+     * Gets the specified request for dropping all flowfiles in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO getDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId);
+
+    /**
+     * Cancels/removes the specified request for dropping all flowfiles in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
 
     /**
      * Deletes the specified process group.

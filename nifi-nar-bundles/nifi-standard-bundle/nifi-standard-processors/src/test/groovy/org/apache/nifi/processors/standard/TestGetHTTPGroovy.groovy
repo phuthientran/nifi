@@ -141,7 +141,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
 
     private
     static SslContextFactory createSslContextFactory(List supportedProtocols = DEFAULT_PROTOCOLS, List supportedCipherSuites = DEFAULT_CIPHER_SUITES) {
-        final SslContextFactory contextFactory = new SslContextFactory()
+        final SslContextFactory contextFactory = new SslContextFactory.Server()
         contextFactory.needClientAuth = false
         contextFactory.wantClientAuth = false
 
@@ -366,8 +366,9 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, protocol)
         runner.enableControllerService(sslContextService)
-        logger.info("GetHTTP supported protocols: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).protocol}")
-        logger.info("GetHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
+        def sslContext = sslContextService.createContext();
+        logger.info("GetHTTP supported protocols: ${sslContext.protocol}")
+        logger.info("GetHTTP supported cipher suites: ${sslContext.supportedSSLParameters.cipherSuites}")
     }
 
     /**

@@ -37,7 +37,6 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -45,7 +44,6 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
-import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
@@ -138,6 +136,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
@@ -425,11 +424,11 @@ public class FlowResource extends ApplicationResource {
 
         if ("prometheus".equalsIgnoreCase(producer)) {
             // get this process group flow
-            serviceFacade.generateFlowMetrics();
+            final Collection<CollectorRegistry> allRegistries = serviceFacade.generateFlowMetrics();
             // generate a streaming response
             final StreamingOutput response = output -> {
                 Writer writer = new BufferedWriter(new OutputStreamWriter(output));
-                for (CollectorRegistry collectorRegistry : PrometheusMetricsUtil.ALL_REGISTRIES) {
+                for (CollectorRegistry collectorRegistry : allRegistries) {
                     TextFormat.write004(writer, collectorRegistry.metricFamilySamples());
                     // flush the response
                     output.flush();
@@ -634,6 +633,10 @@ public class FlowResource extends ApplicationResource {
                     required = true
             ) final ScheduleComponentsEntity requestScheduleComponentsEntity) {
 
+        if (requestScheduleComponentsEntity == null) {
+            throw new IllegalArgumentException("Schedule Component must be specified.");
+        }
+
         // ensure the same id is being used
         if (!id.equals(requestScheduleComponentsEntity.getId())) {
             throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
@@ -821,6 +824,10 @@ public class FlowResource extends ApplicationResource {
             @ApiParam(value = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.", required = true)
             final ActivateControllerServicesEntity requestEntity) {
 
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Controller service must be specified.");
+        }
+
         // ensure the same id is being used
         if (!id.equals(requestEntity.getId())) {
             throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
@@ -853,7 +860,7 @@ public class FlowResource extends ApplicationResource {
 
                 final Predicate<ControllerServiceNode> filter;
                 if (ControllerServiceState.ENABLED.equals(desiredState)) {
-                    filter = service -> !service.isActive() && service.getValidationStatus() == ValidationStatus.VALID;
+                    filter = service -> !service.isActive();
                 } else {
                     filter = ControllerServiceNode::isActive;
                 }

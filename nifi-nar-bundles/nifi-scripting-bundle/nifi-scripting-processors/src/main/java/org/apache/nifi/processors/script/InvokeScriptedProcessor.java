@@ -41,6 +41,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -348,6 +349,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 // Find a custom configurator and invoke their eval() method
                 ScriptEngineConfigurator configurator = scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
                 if (configurator != null) {
+                    configurator.init(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
                     configurator.eval(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
                 } else {
                     // evaluate the script
@@ -565,6 +567,14 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         } else {
             log.error("There is no processor defined by the script");
         }
+    }
+
+    @OnAdded
+    public void added() {
+        // Create the resources whether or not they have been created already, this method is guaranteed to have the instance classloader set
+        // as the thread context class loader. Other methods that call createResources() may be called from other threads with different
+        // classloaders
+        scriptingComponentHelper.createResources();
     }
 
     @OnStopped

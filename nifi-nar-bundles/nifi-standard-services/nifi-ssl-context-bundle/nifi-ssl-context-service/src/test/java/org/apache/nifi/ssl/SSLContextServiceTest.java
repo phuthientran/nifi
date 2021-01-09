@@ -38,7 +38,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
@@ -146,9 +145,7 @@ public class SSLContextServiceTest {
         service = (SSLContextService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
         Assert.assertNotNull(service);
         SSLContextService sslService = service;
-        sslService.createSSLContext(ClientAuth.REQUIRED);
-        sslService.createSSLContext(ClientAuth.WANT);
-        sslService.createSSLContext(ClientAuth.NONE);
+        sslService.createContext();
     }
 
     @Test
@@ -257,12 +254,13 @@ public class SSLContextServiceTest {
             runner.assertValid();
             Assert.assertNotNull(service);
             assertTrue(service instanceof StandardSSLContextService);
-            service.createSSLContext(ClientAuth.NONE);
+            service.createContext();
         } catch (InitializationException e) {
         }
     }
 
     @Test
+    @Deprecated
     public void testGoodKeyOnly() {
         try {
             TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
@@ -279,7 +277,7 @@ public class SSLContextServiceTest {
             Assert.assertNotNull(service);
             assertTrue(service instanceof StandardSSLContextService);
             SSLContextService sslService = service;
-            sslService.createSSLContext(ClientAuth.NONE);
+            sslService.createContext();
         } catch (Exception e) {
             System.out.println(e);
             Assert.fail("Should not have thrown a exception " + e.getMessage());
@@ -301,13 +299,16 @@ public class SSLContextServiceTest {
             properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
             properties.put(StandardSSLContextService.KEY_PASSWORD.getName(), "keypassword");
             properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+            properties.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+            properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+            properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
             runner.addControllerService("test-diff-keys", service, properties);
             runner.enableControllerService(service);
 
             runner.setProperty("SSL Context Svc ID", "test-diff-keys");
             runner.assertValid();
             Assert.assertNotNull(service);
-            service.createSSLContext(ClientAuth.NONE);
+            service.createContext();
         } catch (Exception e) {
             System.out.println(e);
             Assert.fail("Should not have thrown a exception " + e.getMessage());

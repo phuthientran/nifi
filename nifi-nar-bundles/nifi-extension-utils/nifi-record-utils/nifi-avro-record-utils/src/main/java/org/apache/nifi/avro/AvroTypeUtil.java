@@ -44,6 +44,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -60,7 +61,7 @@ import java.sql.Blob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -256,6 +257,11 @@ public class AvroTypeUtil {
             case LONG:
                 schema = Schema.create(Type.LONG);
                 break;
+            case DECIMAL:
+                final DecimalDataType decimalDataType = (DecimalDataType) dataType;
+                schema = Schema.create(Type.BYTES);
+                LogicalTypes.decimal(decimalDataType.getPrecision(), decimalDataType.getScale()).addToSchema(schema);
+                break;
             case MAP:
                 schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName, false));
                 break;
@@ -341,15 +347,16 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_TIMESTAMP_MICROS:
                     return RecordFieldType.TIMESTAMP.getDataType();
                 case LOGICAL_TYPE_DECIMAL:
-                    // We convert Decimal to Double.
-                    // Alternatively we could convert it to String, but numeric type is generally more preferable by users.
-                    return RecordFieldType.DOUBLE.getDataType();
+                    final LogicalTypes.Decimal decimal = (LogicalTypes.Decimal) logicalType;
+                    return RecordFieldType.DECIMAL.getDecimalDataType(decimal.getPrecision(), decimal.getScale());
             }
         }
 
         switch (avroType) {
             case ARRAY:
-                return RecordFieldType.ARRAY.getArrayDataType(determineDataType(avroSchema.getElementType(), knownRecordTypes));
+                final DataType elementType = determineDataType(avroSchema.getElementType(), knownRecordTypes);
+                final boolean elementsNullable = isNullable(avroSchema.getElementType());
+                return RecordFieldType.ARRAY.getArrayDataType(elementType, elementsNullable);
             case BYTES:
             case FIXED:
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
@@ -358,6 +365,7 @@ public class AvroTypeUtil {
             case DOUBLE:
                 return RecordFieldType.DOUBLE.getDataType();
             case ENUM:
+                return RecordFieldType.ENUM.getEnumDataType(avroSchema.getEnumSymbols());
             case STRING:
                 return RecordFieldType.STRING.getDataType();
             case FLOAT:
@@ -373,6 +381,8 @@ public class AvroTypeUtil {
                     return knownRecordTypes.get(schemaFullName);
                 } else {
                     SimpleRecordSchema recordSchema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+                    recordSchema.setSchemaName(avroSchema.getName());
+                    recordSchema.setSchemaNamespace(avroSchema.getNamespace());
                     DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
                     knownRecordTypes.put(schemaFullName, recordSchemaType);
 
@@ -396,7 +406,8 @@ public class AvroTypeUtil {
             case MAP:
                 final Schema valueSchema = avroSchema.getValueType();
                 final DataType valueType = determineDataType(valueSchema, knownRecordTypes);
-                return RecordFieldType.MAP.getMapDataType(valueType);
+                final boolean valuesNullable = isNullable(valueSchema);
+                return RecordFieldType.MAP.getMapDataType(valueType, valuesNullable);
             case UNION: {
                 final List<Schema> nonNullSubSchemas = getNonNullSubSchemas(avroSchema);
 
@@ -655,8 +666,7 @@ public class AvroTypeUtil {
                 if (LOGICAL_TYPE_DATE.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
                     final java.sql.Date date = DataTypeUtils.toDate(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
-                    final long days = ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), date.toLocalDate());
-                    return (int) days;
+                    return (int) ChronoUnit.DAYS.between(Instant.EPOCH, Instant.ofEpochMilli(date.getTime()));
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
                     final Time time = DataTypeUtils.toTime(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
@@ -747,7 +757,7 @@ public class AvroTypeUtil {
                     for (final RecordField recordField : recordValue.getSchema().getFields()) {
                         final Object v = recordValue.getValue(recordField);
                         if (v != null) {
-                            map.put(recordField.getFieldName(), v);
+                            map.put(recordField.getFieldName(), convertToAvroObject(v, fieldSchema.getValueType(), fieldName + "[" + recordField.getFieldName() + "]", charset));
                         }
                     }
 
@@ -818,7 +828,12 @@ public class AvroTypeUtil {
             case NULL:
                 return null;
             case ENUM:
-                return new GenericData.EnumSymbol(fieldSchema, rawValue);
+                List<String> enums = fieldSchema.getEnumSymbols();
+                if(enums != null && enums.contains(rawValue)) {
+                    return new GenericData.EnumSymbol(fieldSchema, rawValue);
+                } else {
+                    throw new IllegalTypeConversionException(rawValue + " is not a possible value of the ENUM" + enums + ".");
+                }
             case STRING:
                 return DataTypeUtils.toString(rawValue, (String) null, charset);
         }

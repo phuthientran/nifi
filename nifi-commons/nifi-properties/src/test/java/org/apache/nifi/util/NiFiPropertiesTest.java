@@ -17,8 +17,9 @@
 package org.apache.nifi.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -269,7 +270,7 @@ public class NiFiPropertiesTest {
         }});
 
         // Assert defaults match expectations:
-        assertEquals(properties.getWebMaxContentSize(), "20 MB");
+        assertNull(properties.getWebMaxContentSize());
 
         // Re-arrange with specific values:
         final String size = "size value";
@@ -279,5 +280,51 @@ public class NiFiPropertiesTest {
 
         // Assert specific values are used:
         assertEquals(properties.getWebMaxContentSize(),  size);
+    }
+
+    @Test
+    public void testIsZooKeeperTlsConfigurationPresent() {
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
+            put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "password");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, "password");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS");
+        }});
+
+        assertTrue(properties.isZooKeeperClientSecure());
+        assertTrue(properties.isZooKeeperTlsConfigurationPresent());
+    }
+
+    @Test
+    public void testSomeZooKeeperTlsConfigurationIsMissing() {
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
+            put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "password");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS");
+        }});
+
+        assertTrue(properties.isZooKeeperClientSecure());
+        assertFalse(properties.isZooKeeperTlsConfigurationPresent());
+    }
+
+    @Test
+    public void testZooKeeperTlsPasswordsBlank() {
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
+            put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, "");
+            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS");
+        }});
+
+        assertTrue(properties.isZooKeeperClientSecure());
+        assertTrue(properties.isZooKeeperTlsConfigurationPresent());
     }
 }

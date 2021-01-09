@@ -414,6 +414,8 @@ public class StandardValidators {
 
     public static final Validator REGULAR_EXPRESSION_VALIDATOR = createRegexValidator(0, Integer.MAX_VALUE, false);
 
+    public static final Validator REGULAR_EXPRESSION_WITH_EL_VALIDATOR = createRegexValidator(0, Integer.MAX_VALUE, true);
+
     public static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
@@ -822,9 +824,15 @@ public class StandardValidators {
     public static class FileExistsValidator implements Validator {
 
         private final boolean allowEL;
+        private final boolean allowFileOnly;
 
         public FileExistsValidator(final boolean allowExpressionLanguage) {
+            this(allowExpressionLanguage,false);
+        }
+
+        public FileExistsValidator(final boolean allowExpressionLanguage, final boolean fileOnly) {
             this.allowEL = allowExpressionLanguage;
+            this.allowFileOnly = fileOnly;
         }
 
         @Override
@@ -846,9 +854,13 @@ public class StandardValidators {
             }
 
             final File file = new File(substituted);
-            final boolean valid = file.exists();
-            final String explanation = valid ? null : "File " + file + " does not exist";
-            return new ValidationResult.Builder().subject(subject).input(value).valid(valid).explanation(explanation).build();
+            if (!file.exists()) {
+                return new ValidationResult.Builder().subject(subject).input(value).valid(false).explanation("File " + file + " does not exist").build();
+            }
+            if (allowFileOnly && !file.isFile()) {
+                return new ValidationResult.Builder().subject(subject).input(value).valid(false).explanation(file + " is not a file").build();
+            }
+            return new ValidationResult.Builder().subject(subject).input(value).valid(true).build();
         }
     }
 

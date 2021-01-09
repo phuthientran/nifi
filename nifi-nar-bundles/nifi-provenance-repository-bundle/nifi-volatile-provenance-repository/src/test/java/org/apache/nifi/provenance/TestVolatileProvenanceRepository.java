@@ -46,7 +46,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testAddAndGet() throws IOException, InterruptedException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -79,7 +79,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearchAsync() throws InterruptedException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
@@ -189,6 +189,16 @@ public class TestVolatileProvenanceRepository {
 
             @Override
             public Set<String> getGroups() {
+                return Collections.EMPTY_SET;
+            }
+
+            @Override
+            public Set<String> getIdentityProviderGroups() {
+                return Collections.EMPTY_SET;
+            }
+
+            @Override
+            public Set<String> getAllGroups() {
                 return Collections.EMPTY_SET;
             }
 

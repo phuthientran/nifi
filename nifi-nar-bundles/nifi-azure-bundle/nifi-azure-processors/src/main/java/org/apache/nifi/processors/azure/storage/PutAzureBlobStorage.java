@@ -19,8 +19,11 @@ package org.apache.nifi.processors.azure.storage;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FilterInputStream;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -34,10 +37,13 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
@@ -59,6 +65,37 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
         @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob")})
 public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
+    public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
+            .name("blob")
+            .displayName("Blob")
+            .description("The filename of the blob")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor CREATE_CONTAINER = new PropertyDescriptor.Builder()
+            .name("azure-create-container")
+            .displayName("Create Container")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .description("Specifies whether to check if the container exists and to automatically create it if it does not. " +
+                  "Permission to list containers is required. If false, this check is not made, but the Put operation " +
+                  "will fail if the container does not exist.")
+            .build();
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.remove(BLOB);
+        properties.add(BLOB_NAME);
+        properties.add(CREATE_CONTAINER);
+        return properties;
+    }
+
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -69,12 +106,17 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
 
-        String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
+        String blobPath = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+
+        final boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
 
         AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
             CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
+
+            if (createContainer)
+                container.createIfNotExists();
 
             CloudBlob blob = container.getBlockBlobReference(blobPath);
 
@@ -90,8 +132,16 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                     in = new BufferedInputStream(rawIn);
                 }
 
+                // If markSupported() is true and a file length is provided,
+                // Blobs are not uploaded in blocks resulting in OOME for large
+                // files. The UnmarkableInputStream wrapper class disables
+                // mark() and reset() to help force uploading files in chunks.
+                if (in.markSupported()) {
+                    in = new UnmarkableInputStream(in);
+                }
+
                 try {
-                    blob.upload(in, length, null, null, operationContext);
+                    blob.upload(in, -1, null, null, operationContext);
                     BlobProperties properties = blob.getProperties();
                     attributes.put("azure.container", containerName);
                     attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());
@@ -123,5 +173,25 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             }
         }
 
+    }
+
+    // Used to help force Azure Blob SDK to write in blocks
+    private static class UnmarkableInputStream extends FilterInputStream {
+        public UnmarkableInputStream(InputStream in) {
+            super(in);
+        }
+
+        @Override
+        public void mark(int readlimit) {
+        }
+
+        @Override
+        public void reset() throws IOException {
+        }
+
+        @Override
+        public boolean markSupported() {
+            return false;
+        }
     }
 }
