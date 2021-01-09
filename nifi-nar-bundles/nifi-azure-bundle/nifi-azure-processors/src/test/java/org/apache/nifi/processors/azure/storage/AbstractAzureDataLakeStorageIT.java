@@ -17,8 +17,6 @@
 package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.common.StorageSharedKeyCredential;
-import com.azure.storage.file.datalake.DataLakeDirectoryClient;
-import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
@@ -26,7 +24,6 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.junit.After;
 import org.junit.Before;
 
-import java.io.ByteArrayInputStream;
 import java.util.UUID;
 
 public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorageIT {
@@ -56,21 +53,5 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
                 .endpoint("https://" + getAccountName() + ".dfs.core.windows.net")
                 .credential(new StorageSharedKeyCredential(getAccountName(), getAccountKey()))
                 .buildClient();
-    }
-
-    protected void uploadFile(String directory, String filename, String fileContent) {
-        byte[] fileContentBytes = fileContent.getBytes();
-
-        DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
-        DataLakeFileClient fileClient = directoryClient.createFile(filename);
-
-        fileClient.append(new ByteArrayInputStream(fileContentBytes), 0, fileContentBytes.length);
-        fileClient.flush(fileContentBytes.length);
-    }
-
-    protected void createDirectoryAndUploadFile(String directory, String filename, String fileContent) {
-        fileSystemClient.createDirectory(directory);
-
-        uploadFile(directory, filename, fileContent);
     }
 }

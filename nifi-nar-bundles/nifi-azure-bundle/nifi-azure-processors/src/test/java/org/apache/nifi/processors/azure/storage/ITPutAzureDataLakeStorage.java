@@ -18,12 +18,9 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
-import com.google.common.collect.Sets;
 import com.google.common.net.UrlEscapers;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -32,8 +29,6 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -229,7 +224,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     private void assertSuccess(String directory, String fileName, byte[] fileData) throws Exception {
         assertFlowFile(directory, fileName, fileData);
         assertAzureFile(directory, fileName, fileData);
-        assertProvenanceEvents();
     }
 
     private void assertFlowFile(String directory, String fileName, byte[] fileData) throws Exception {
@@ -266,15 +260,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         assertTrue(fileClient.exists());
         assertEquals(fileData.length, fileClient.getProperties().getFileSize());
-    }
-
-    private void assertProvenanceEvents() {
-        Set<ProvenanceEventType> expectedEventTypes = Sets.newHashSet(ProvenanceEventType.SEND);
-
-        Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
-                .map(ProvenanceEventRecord::getEventType)
-                .collect(Collectors.toSet());
-        assertEquals(expectedEventTypes, actualEventTypes);
     }
 
     private void assertFailure() {
