@@ -17,7 +17,6 @@
 package org.apache.nifi.tests.system;
 
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
-import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -381,21 +380,12 @@ public class NiFiClientUtil {
         return counterValues;
     }
 
-    public ScheduleComponentsEntity startProcessGroupComponents(final String groupId) throws NiFiClientException, IOException {
-        final ScheduleComponentsEntity scheduleComponentsEntity = new ScheduleComponentsEntity();
-        scheduleComponentsEntity.setId(groupId);
-        scheduleComponentsEntity.setState("RUNNING");
-        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents("root", scheduleComponentsEntity);
-
-        return scheduleEntity;
-    }
-
     public ScheduleComponentsEntity stopProcessGroupComponents(final String groupId) throws NiFiClientException, IOException {
         final ScheduleComponentsEntity scheduleComponentsEntity = new ScheduleComponentsEntity();
-        scheduleComponentsEntity.setId(groupId);
+        scheduleComponentsEntity.setId("root");
         scheduleComponentsEntity.setState("STOPPED");
         final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents("root", scheduleComponentsEntity);
-        waitForProcessorsStopped(groupId);
+        waitForProcessorsStopped("root");
 
         return scheduleEntity;
     }
@@ -546,18 +536,6 @@ public class NiFiClientUtil {
         }
     }
 
-    public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination) throws NiFiClientException, IOException {
-        return createConnection(source, destination, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()));
-    }
-
-    public ConnectionEntity createConnection(final PortEntity source, final ProcessorEntity destination) throws NiFiClientException, IOException {
-        return createConnection(source, destination, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()));
-    }
-
-    public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final String relationship) throws NiFiClientException, IOException {
-        return createConnection(source, destination, Collections.singleton(relationship));
-    }
-
     public ConnectionEntity createConnection(final ProcessorEntity source, final ProcessorEntity destination, final String relationship) throws NiFiClientException, IOException {
         return createConnection(source, destination, Collections.singleton(relationship));
     }
@@ -570,41 +548,27 @@ public class NiFiClientUtil {
         return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
     }
 
-    public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final Set<String> relationships) throws NiFiClientException, IOException {
-        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
-    }
-
-    public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination, final Set<String> relationships) throws NiFiClientException, IOException {
-        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
-    }
-
-    public ConnectionEntity createConnection(final PortEntity source, final ProcessorEntity destination, final Set<String> relationships) throws NiFiClientException, IOException {
-        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
-    }
-
     public ConnectionEntity createConnection(final ConnectableDTO source, final ConnectableDTO destination, final Set<String> relationships) throws NiFiClientException, IOException {
-        final String groupId = "OUTPUT_PORT".equals(source.getType()) ? destination.getGroupId() : source.getGroupId();
-
         final ConnectionDTO connectionDto = new ConnectionDTO();
         connectionDto.setSelectedRelationships(relationships);
         connectionDto.setDestination(destination);
         connectionDto.setSource(source);
-        connectionDto.setParentGroupId(groupId);
+        connectionDto.setParentGroupId(source.getGroupId());
 
         final ConnectionEntity connectionEntity = new ConnectionEntity();
         connectionEntity.setComponent(connectionDto);
 
         connectionEntity.setDestinationGroupId(destination.getGroupId());
         connectionEntity.setDestinationId(destination.getId());
-        connectionEntity.setDestinationType(destination.getType());
+        connectionEntity.setDestinationType("PROCESSOR");
 
         connectionEntity.setSourceGroupId(source.getGroupId());
         connectionEntity.setSourceId(source.getId());
-        connectionEntity.setSourceType(source.getType());
+        connectionEntity.setDestinationType("PROCESSOR");
 
         connectionEntity.setRevision(createNewRevision());
 
-        return nifiClient.getConnectionClient().createConnection(groupId, connectionEntity);
+        return nifiClient.getConnectionClient().createConnection(source.getGroupId(), connectionEntity);
     }
 
     public ConnectableDTO createConnectableDTO(final ProcessorEntity processor) {
@@ -812,30 +776,6 @@ public class NiFiClientUtil {
 
         final ProcessGroupEntity childGroup = nifiClient.getProcessGroupClient().createProcessGroup(parentGroupId, childGroupEntity);
         return childGroup;
-    }
-
-    public PortEntity createInputPort(final String name, final String groupId) throws NiFiClientException, IOException {
-        final PortDTO component = new PortDTO();
-        component.setName(name);
-        component.setParentGroupId(groupId);
-
-        final PortEntity inputPortEntity = new PortEntity();
-        inputPortEntity.setRevision(createNewRevision());
-        inputPortEntity.setComponent(component);
-
-        return nifiClient.getInputPortClient().createInputPort(groupId, inputPortEntity);
-    }
-
-    public PortEntity createOutputPort(final String name, final String groupId) throws NiFiClientException, IOException {
-        final PortDTO component = new PortDTO();
-        component.setName(name);
-        component.setParentGroupId(groupId);
-
-        final PortEntity outputPortEntity = new PortEntity();
-        outputPortEntity.setRevision(createNewRevision());
-        outputPortEntity.setComponent(component);
-
-        return nifiClient.getOutputPortClient().createOutputPort(groupId, outputPortEntity);
     }
 
     public ProvenanceEntity queryProvenance(final Map<SearchableField, String> searchTerms, final Long startTime, final Long endTime) throws NiFiClientException, IOException {
