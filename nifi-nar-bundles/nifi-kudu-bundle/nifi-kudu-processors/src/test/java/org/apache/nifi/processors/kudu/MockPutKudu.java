@@ -26,9 +26,12 @@ import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.Update;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.Record;
 
+import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -36,7 +39,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -101,7 +103,7 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected void executeOnKuduClient(Consumer<KuduClient> actionOnKuduClient) {
+    protected void onTrigger(ProcessContext context, ProcessSession session, KuduClient kuduClient)  throws ProcessException {
         final KuduClient client = mock(KuduClient.class);
 
         try {
@@ -112,7 +114,7 @@ public class MockPutKudu extends PutKudu {
             throw new AssertionError(e);
         }
 
-        actionOnKuduClient.accept(client);
+        super.onTrigger(context, session, client);
     }
 
     public boolean loggedIn() {
@@ -124,12 +126,12 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KerberosUser createKerberosKeytabUser(String principal, String keytab, ProcessContext context) {
+    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab, ProcessContext context) throws LoginException {
         return createMockKerberosUser(principal);
     }
 
     @Override
-    protected KerberosUser createKerberosPasswordUser(String principal, String password, ProcessContext context) {
+    protected KerberosUser loginKerberosPasswordUser(String principal, String password, ProcessContext context) throws LoginException {
         return createMockKerberosUser(principal);
     }
 
