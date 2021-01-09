@@ -37,6 +37,7 @@ import org.apache.nifi.provenance.lineage.EventNode;
 import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.reporting.EventAccess;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.state.MockStateManager;
@@ -75,8 +76,8 @@ import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_NIFI_UR
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_PASSWORD;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
-import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.LINEAGE_STRATEGY;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.LINEAGE_STRATEGY_COMPLETE_PATH;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.LINEAGE_STRATEGY;
 import static org.apache.nifi.atlas.reporting.SimpleProvenanceRecord.pr;
 import static org.apache.nifi.provenance.ProvenanceEventType.ATTRIBUTES_MODIFIED;
 import static org.apache.nifi.provenance.ProvenanceEventType.CREATE;
@@ -422,7 +423,7 @@ public class ITReportLineageToAtlas {
         }
     }
 
-    private void test(TestConfiguration tc) throws Exception {
+    private void test(TestConfiguration tc) throws InitializationException, IOException {
         final ReportLineageToAtlas reportingTask = new ReportLineageToAtlas();
         final MockComponentLog logger = new MockComponentLog("reporting-task-id", reportingTask);
 
