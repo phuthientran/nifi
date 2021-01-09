@@ -76,7 +76,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
+import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -1399,10 +1401,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public synchronized List<ActiveThreadInfo> getActiveThreads(final ThreadDetails threadDetails) {
+    public synchronized List<ActiveThreadInfo> getActiveThreads() {
         final long now = System.currentTimeMillis();
+        final ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
+        final ThreadInfo[] infos = mbean.dumpAllThreads(true, true);
+        final long[] deadlockedThreadIds = mbean.findDeadlockedThreads();
+        final long[] monitorDeadlockThreadIds = mbean.findMonitorDeadlockedThreads();
 
-        final Map<Long, ThreadInfo> threadInfoMap = Stream.of(threadDetails.getThreadInfos())
+        final Map<Long, ThreadInfo> threadInfoMap = Stream.of(infos)
             .collect(Collectors.toMap(ThreadInfo::getThreadId, Function.identity(), (a, b) -> a));
 
         final List<ActiveThreadInfo> threadList = new ArrayList<>(activeThreads.size());
@@ -1413,7 +1419,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final long activeMillis = now - timestamp;
             final ThreadInfo threadInfo = threadInfoMap.get(thread.getId());
 
-            final String stackTrace = ThreadUtils.createStackTrace(thread, threadInfo, threadDetails.getDeadlockedThreadIds(), threadDetails.getMonitorDeadlockThreadIds(), activeMillis);
+            final String stackTrace = ThreadUtils.createStackTrace(thread, threadInfo, deadlockedThreadIds, monitorDeadlockThreadIds, activeMillis);
 
             final ActiveThreadInfo activeThreadInfo = new ActiveThreadInfo(thread.getName(), stackTrace, activeMillis, activeTask.isTerminated());
             threadList.add(activeThreadInfo);

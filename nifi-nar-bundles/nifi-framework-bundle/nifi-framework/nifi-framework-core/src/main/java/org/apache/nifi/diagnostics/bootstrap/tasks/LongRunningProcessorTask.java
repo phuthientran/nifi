@@ -19,7 +19,6 @@ package org.apache.nifi.diagnostics.bootstrap.tasks;
 import org.apache.nifi.controller.ActiveThreadInfo;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.ThreadDetails;
 import org.apache.nifi.diagnostics.DiagnosticTask;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
@@ -41,10 +40,9 @@ public class LongRunningProcessorTask implements DiagnosticTask {
     @Override
     public DiagnosticsDumpElement captureDump(final boolean verbose) {
         final List<String> details = new ArrayList<>();
-        final ThreadDetails threadDetails = ThreadDetails.capture();
 
         for (final ProcessorNode processorNode : flowController.getFlowManager().getRootGroup().findAllProcessors()) {
-            final List<ActiveThreadInfo> activeThreads = processorNode.getActiveThreads(threadDetails);
+            final List<ActiveThreadInfo> activeThreads = processorNode.getActiveThreads();
 
             for (final ActiveThreadInfo activeThread : activeThreads) {
                 if (activeThread.getActiveMillis() > MIN_ACTIVE_MILLIS) {
