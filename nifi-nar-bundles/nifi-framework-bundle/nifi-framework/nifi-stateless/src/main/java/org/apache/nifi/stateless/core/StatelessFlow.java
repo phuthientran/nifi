@@ -19,19 +19,6 @@ package org.apache.nifi.stateless.core;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
@@ -58,7 +45,20 @@ import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.stateless.bootstrap.RunnableFlow;
-import org.apache.nifi.stateless.core.security.StatelessSecurityUtility;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StatelessFlow implements RunnableFlow {
 
@@ -319,7 +319,6 @@ public class StatelessFlow implements RunnableFlow {
 
 
 
-    @Override
     public boolean run(final Queue<InMemoryFlowFile> output) {
         while (!this.stopRequested) {
             for (final StatelessComponent pw : roots) {
@@ -333,7 +332,6 @@ public class StatelessFlow implements RunnableFlow {
         return true;
     }
 
-    @Override
     public boolean runOnce(Queue<InMemoryFlowFile> output) {
         for (final StatelessComponent pw : roots) {
             final boolean successful = pw.runRecursive(output);
@@ -356,7 +354,6 @@ public class StatelessFlow implements RunnableFlow {
         }
 
         final JsonObject sslObject = config.get(SSL).getAsJsonObject();
-        // TODO: Only evaluates to true when all properties are present; some flows can have truststore properties and no keystore or vice-versa
         if (sslObject.has(KEYSTORE) && sslObject.has(KEYSTORE_PASS) && sslObject.has(KEYSTORE_TYPE)
                 && sslObject.has(TRUSTSTORE) && sslObject.has(TRUSTSTORE_PASS) && sslObject.has(TRUSTSTORE_TYPE)) {
 
@@ -380,38 +377,38 @@ public class StatelessFlow implements RunnableFlow {
         return null;
     }
 
-    public static StatelessFlow createAndEnqueueFromJSON(final JsonObject jsonObject, final ClassLoader systemClassLoader, final File narWorkingDir)
+    public static StatelessFlow createAndEnqueueFromJSON(final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir)
             throws InitializationException, IOException, ProcessorInstantiationException, NiFiRegistryException {
-        if (jsonObject == null) {
+        if (args == null) {
             throw new IllegalArgumentException("Flow arguments can not be null");
         }
 
-        System.out.println("Running flow from json: " + StatelessSecurityUtility.getLoggableRepresentationOfJsonObject(jsonObject));
+        System.out.println("Running flow from json: " + args.toString());
 
-        if (!jsonObject.has(REGISTRY) || !jsonObject.has(BUCKETID) || !jsonObject.has(FLOWID)) {
+        if (!args.has(REGISTRY) || !args.has(BUCKETID) || !args.has(FLOWID)) {
             throw new IllegalArgumentException("The following parameters must be provided: " + REGISTRY + ", " + BUCKETID + ", " + FLOWID);
         }
 
-        final String registryurl = jsonObject.getAsJsonPrimitive(REGISTRY).getAsString();
-        final String bucketID = jsonObject.getAsJsonPrimitive(BUCKETID).getAsString();
-        final String flowID = jsonObject.getAsJsonPrimitive(FLOWID).getAsString();
+        final String registryurl = args.getAsJsonPrimitive(REGISTRY).getAsString();
+        final String bucketID = args.getAsJsonPrimitive(BUCKETID).getAsString();
+        final String flowID = args.getAsJsonPrimitive(FLOWID).getAsString();
 
         int flowVersion = -1;
-        if (jsonObject.has(FLOWVERSION)) {
-            flowVersion = jsonObject.getAsJsonPrimitive(FLOWVERSION).getAsInt();
+        if (args.has(FLOWVERSION)) {
+            flowVersion = args.getAsJsonPrimitive(FLOWVERSION).getAsInt();
         }
 
         boolean materializeContent = true;
-        if (jsonObject.has(MATERIALIZECONTENT)) {
-            materializeContent = jsonObject.getAsJsonPrimitive(MATERIALIZECONTENT).getAsBoolean();
+        if (args.has(MATERIALIZECONTENT)) {
+            materializeContent = args.getAsJsonPrimitive(MATERIALIZECONTENT).getAsBoolean();
         }
 
         final List<String> failurePorts = new ArrayList<>();
-        if (jsonObject.has(FAILUREPORTS)) {
-            jsonObject.getAsJsonArray(FAILUREPORTS).forEach(port ->failurePorts.add(port.getAsString()));
+        if (args.has(FAILUREPORTS)) {
+            args.getAsJsonArray(FAILUREPORTS).forEach(port ->failurePorts.add(port.getAsString()));
         }
 
-        final SSLContext sslContext = getSSLContext(jsonObject);
+        final SSLContext sslContext = getSSLContext(args);
         final VersionedFlowSnapshot snapshot = new RegistryUtil(registryurl, sslContext).getFlowByID(bucketID, flowID, flowVersion);
 
         final Map<VariableDescriptor, String> inputVariables = new HashMap<>();
@@ -426,8 +423,8 @@ public class StatelessFlow implements RunnableFlow {
 
         final Set<Parameter> parameters = new HashSet<>();
         final Set<String> parameterNames = new HashSet<>();
-        if (jsonObject.has(PARAMETERS)) {
-            final JsonElement parametersElement = jsonObject.get(PARAMETERS);
+        if (args.has(PARAMETERS)) {
+            final JsonElement parametersElement = args.get(PARAMETERS);
             final JsonObject parametersObject = parametersElement.getAsJsonObject();
 
             for (final Map.Entry<String, JsonElement> entry : parametersObject.entrySet()) {
@@ -470,7 +467,7 @@ public class StatelessFlow implements RunnableFlow {
         final ParameterContext parameterContext = new StatelessParameterContext(parameters);
         final ExtensionManager extensionManager = ExtensionDiscovery.discover(narWorkingDir, systemClassLoader);
         final StatelessFlow flow = new StatelessFlow(snapshot.getFlowContents(), extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext, parameterContext);
-        flow.enqueueFromJSON(jsonObject);
+        flow.enqueueFromJSON(args);
         return flow;
     }
 
