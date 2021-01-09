@@ -16,24 +16,25 @@
  */
 package org.apache.nifi.web.security.anonymous;
 
-import org.apache.nifi.web.security.NiFiAuthenticationFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-
 import javax.servlet.http.HttpServletRequest;
 
-/**
- * Extracts an anonymous authentication request from a specified servlet request.
- */
-public class NiFiAnonymousAuthenticationFilter extends NiFiAuthenticationFilter {
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 
-    private static final Logger logger = LoggerFactory.getLogger(NiFiAnonymousAuthenticationFilter.class);
+public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
+
+    private static final String ANONYMOUS_KEY = "anonymousNifiKey";
+
+    public NiFiAnonymousUserFilter() {
+        super(ANONYMOUS_KEY);
+    }
 
     @Override
-    public Authentication attemptAuthentication(final HttpServletRequest request) {
-        // return the anonymous authentication request for this http request
-        return new NiFiAnonymousAuthenticationRequestToken(request.isSecure(), request.getRemoteAddr());
+    protected Authentication createAuthentication(HttpServletRequest request) {
+        return new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
     }
 
 }

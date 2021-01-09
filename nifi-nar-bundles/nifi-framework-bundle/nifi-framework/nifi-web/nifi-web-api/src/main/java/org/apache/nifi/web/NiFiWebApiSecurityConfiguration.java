@@ -17,8 +17,7 @@
 package org.apache.nifi.web;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
-import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
+import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
@@ -77,8 +76,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private KnoxAuthenticationFilter knoxAuthenticationFilter;
     private KnoxAuthenticationProvider knoxAuthenticationProvider;
 
-    private NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter;
-    private NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider;
+    private NiFiAnonymousUserFilter anonymousAuthenticationFilter;
 
     public NiFiWebApiSecurityConfiguration() {
         super(true); // disable defaults
@@ -120,10 +118,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         http.addFilterBefore(knoxFilterBean(), AnonymousAuthenticationFilter.class);
 
         // anonymous
-        http.addFilterAfter(anonymousFilterBean(), AnonymousAuthenticationFilter.class);
-
-        // disable default anonymous handling because it doesn't handle conditional authentication well
-        http.anonymous().disable();
+        http.anonymous().authenticationFilter(anonymousFilterBean());
     }
 
 
@@ -149,8 +144,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .authenticationProvider(x509AuthenticationProvider)
                 .authenticationProvider(jwtAuthenticationProvider)
                 .authenticationProvider(otpAuthenticationProvider)
-                .authenticationProvider(knoxAuthenticationProvider)
-                .authenticationProvider(anonymousAuthenticationProvider);
+                .authenticationProvider(knoxAuthenticationProvider);
     }
 
     @Bean
@@ -196,11 +190,9 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     }
 
     @Bean
-    public NiFiAnonymousAuthenticationFilter anonymousFilterBean() throws Exception {
+    public NiFiAnonymousUserFilter anonymousFilterBean() throws Exception {
         if (anonymousAuthenticationFilter == null) {
-            anonymousAuthenticationFilter = new NiFiAnonymousAuthenticationFilter();
-            anonymousAuthenticationFilter.setProperties(properties);
-            anonymousAuthenticationFilter.setAuthenticationManager(authenticationManager());
+            anonymousAuthenticationFilter = new NiFiAnonymousUserFilter();
         }
         return anonymousAuthenticationFilter;
     }
@@ -223,11 +215,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Autowired
     public void setKnoxAuthenticationProvider(KnoxAuthenticationProvider knoxAuthenticationProvider) {
         this.knoxAuthenticationProvider = knoxAuthenticationProvider;
-    }
-
-    @Autowired
-    public void setAnonymousAuthenticationProvider(NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider) {
-        this.anonymousAuthenticationProvider = anonymousAuthenticationProvider;
     }
 
     @Autowired
