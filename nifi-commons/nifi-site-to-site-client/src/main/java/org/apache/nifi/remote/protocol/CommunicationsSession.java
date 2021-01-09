@@ -19,10 +19,9 @@ package org.apache.nifi.remote.protocol;
 import java.io.Closeable;
 import java.io.IOException;
 
-// TODO: Possibly refactor shared interface between this class and SiteToSiteRestApiClient
 public interface CommunicationsSession extends Closeable {
 
-    byte[] MAGIC_BYTES = {(byte) 'N', (byte) 'i', (byte) 'F', (byte) 'i'};
+    public static final byte[] MAGIC_BYTES = {(byte) 'N', (byte) 'i', (byte) 'F', (byte) 'i'};
 
     CommunicationsInput getInput();
 
