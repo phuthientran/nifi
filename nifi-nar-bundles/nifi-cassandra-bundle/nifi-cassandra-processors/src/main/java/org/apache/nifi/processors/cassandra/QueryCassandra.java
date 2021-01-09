@@ -56,7 +56,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -211,8 +210,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
             fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
                 @Override
-                public void process(final OutputStream rawOut) throws IOException {
-                    try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                public void process(final OutputStream out) throws IOException {
+                    try {
                         logger.debug("Executing CQL query {}", new Object[]{selectQuery});
                         final ResultSet resultSet;
                         if (queryTimeout > 0) {
