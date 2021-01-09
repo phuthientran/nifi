@@ -17,7 +17,6 @@
 package org.apache.nifi.controller.kudu;
 
 import org.apache.kudu.ColumnSchema;
-import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.AsyncKuduClient;
@@ -312,15 +311,12 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                 case INT64:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.LONG.getDataType()));
                     break;
-                case DECIMAL:
-                    final ColumnTypeAttributes attributes = cs.getTypeAttributes();
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.DECIMAL.getDecimalDataType(attributes.getPrecision(), attributes.getScale())));
-                    break;
                 case UNIXTIME_MICROS:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.TIMESTAMP.getDataType()));
                     break;
                 case BINARY:
                 case STRING:
+                case DECIMAL:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.STRING.getDataType()));
                     break;
                 case DOUBLE:

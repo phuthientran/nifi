@@ -22,7 +22,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
@@ -68,8 +67,7 @@ public class TestStandardSchemaValidator {
             RecordFieldType.LONG,
             RecordFieldType.BIGINT,
             RecordFieldType.FLOAT,
-            RecordFieldType.DOUBLE,
-            RecordFieldType.DECIMAL
+            RecordFieldType.DOUBLE
     ));
 
     @Test
@@ -119,7 +117,6 @@ public class TestStandardSchemaValidator {
         valueMap.put("short", (short) 8);
         valueMap.put("int", 9);
         valueMap.put("bigint", BigInteger.valueOf(8L));
-        valueMap.put("decimal", BigDecimal.valueOf(8.1D));
         valueMap.put("long", 8L);
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
@@ -148,9 +145,6 @@ public class TestStandardSchemaValidator {
 
         valueMap.put("float_as_double", 8.0F);
 
-        valueMap.put("float_as_decimal", 8.0F);
-        valueMap.put("double_as_decimal", 8.0D);
-
         final Record record = new MapRecord(schema, valueMap);
 
         final SchemaValidationContext validationContext = new SchemaValidationContext(schema, false, true);
@@ -176,21 +170,18 @@ public class TestStandardSchemaValidator {
     public void testByteIsConsideredToBeValidFloatingPoint() {
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid((byte) 9, RecordFieldType.FLOAT);
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid((byte) 9, RecordFieldType.DOUBLE);
-        whenValueIsAcceptedAsDataTypeThenConsideredAsValid((byte) 9, RecordFieldType.DECIMAL);
     }
 
     @Test
     public void testShortIsConsideredToBeValidFloatingPoint() {
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid((short) 9, RecordFieldType.FLOAT);
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid((short) 9, RecordFieldType.DOUBLE);
-        whenValueIsAcceptedAsDataTypeThenConsideredAsValid((short) 9, RecordFieldType.DECIMAL);
     }
 
     @Test
     public void testIntegerWithinRangeIsConsideredToBeValidFloatingPoint() {
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid(MAX_PRECISE_WHOLE_IN_FLOAT.intValue(), RecordFieldType.FLOAT);
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid(Integer.MAX_VALUE, RecordFieldType.DOUBLE);
-        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(Integer.MAX_VALUE, RecordFieldType.DECIMAL);
     }
 
     @Test
@@ -203,7 +194,6 @@ public class TestStandardSchemaValidator {
     public void testLongWithinRangeIsConsideredToBeValidFloatingPoint() {
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid(MAX_PRECISE_WHOLE_IN_FLOAT, RecordFieldType.FLOAT);
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid(MAX_PRECISE_WHOLE_IN_DOUBLE, RecordFieldType.DOUBLE);
-        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(Long.MAX_VALUE, RecordFieldType.DECIMAL);
     }
 
     @Test
@@ -216,7 +206,6 @@ public class TestStandardSchemaValidator {
     public void testBigintWithinRangeIsConsideredToBeValidFloatingPoint() {
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid(BigInteger.valueOf(5L), RecordFieldType.FLOAT);
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid(BigInteger.valueOf(5L), RecordFieldType.DOUBLE);
-        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(BigInteger.valueOf(Long.MAX_VALUE), RecordFieldType.DECIMAL);
     }
 
     @Test

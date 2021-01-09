@@ -19,9 +19,7 @@ package org.apache.hadoop.hive.ql.io.orc;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde2.io.DateWritableV2;
-import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -47,7 +45,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
-import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.orc.MemoryManager;
@@ -55,7 +52,6 @@ import org.apache.orc.OrcConf;
 import org.apache.orc.impl.MemoryManagerImpl;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -107,9 +103,6 @@ public class NiFiOrcUtils {
             }
             if (o instanceof Double) {
                 return new DoubleWritable((double) o);
-            }
-            if (o instanceof BigDecimal) {
-                return new HiveDecimalWritable(HiveDecimal.create((BigDecimal) o));
             }
             if (o instanceof String) {
                 return new Text(o.toString());
@@ -293,11 +286,6 @@ public class NiFiOrcUtils {
                 || RecordFieldType.STRING.equals(fieldType)) {
             return getPrimitiveOrcTypeFromPrimitiveFieldType(dataType);
         }
-
-        if (RecordFieldType.DECIMAL.equals(fieldType)) {
-            DecimalDataType decimalDataType = (DecimalDataType) dataType;
-            return TypeInfoFactory.getDecimalTypeInfo(decimalDataType.getPrecision(), decimalDataType.getScale());
-        }
         if (RecordFieldType.DATE.equals(fieldType)) {
             return TypeInfoFactory.dateTypeInfo;
         }
@@ -418,9 +406,6 @@ public class NiFiOrcUtils {
         }
         if (RecordFieldType.FLOAT.equals(dataType)) {
             return "FLOAT";
-        }
-        if (RecordFieldType.DECIMAL.equals(dataType)) {
-            return "DECIMAL";
         }
         if (RecordFieldType.STRING.equals(dataType)) {
             return "STRING";

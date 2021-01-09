@@ -18,10 +18,11 @@
 package org.apache.nifi.processors.kudu;
 
 import org.apache.kudu.Schema;
+import org.apache.kudu.client.AlterTableOptions;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
-import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
+import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.RowError;
@@ -324,8 +325,10 @@ public class PutKudu extends AbstractKuduProcessor {
                         // we created by a concurrent thread or application attempting to handle schema drift.
                         for (RecordField field : missing) {
                             try {
-                                final String columnName = lowercaseFields ? field.getFieldName().toLowerCase() : field.getFieldName();
-                                kuduClient.alterTable(tableName, getAddNullableColumnStatement(columnName, field.getDataType()));
+                                String columnName = lowercaseFields ? field.getFieldName().toLowerCase() : field.getFieldName();
+                                AlterTableOptions alter = new AlterTableOptions();
+                                alter.addNullableColumn(columnName, toKuduType(field.getDataType()));
+                                kuduClient.alterTable(tableName, alter);
                             } catch (KuduException e) {
                                 // Ignore the exception if the column already exists due to concurrent
                                 // threads or applications attempting to handle schema drift.
