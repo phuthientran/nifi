@@ -262,7 +262,6 @@
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>package.json</include>
-                                        <include>package-lock.json</include>
                                     </includes>
                                 </resource>
                             </resources>
