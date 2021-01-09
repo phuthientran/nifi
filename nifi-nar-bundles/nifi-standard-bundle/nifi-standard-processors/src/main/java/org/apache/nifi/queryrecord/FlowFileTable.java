@@ -279,7 +279,6 @@ public class FlowFileTable extends AbstractTable implements QueryableTable, Tran
         switch (dataType.getFieldType()) {
             case BIGINT:
             case BYTE:
-            case DECIMAL:
             case DOUBLE:
             case FLOAT:
             case INT:
