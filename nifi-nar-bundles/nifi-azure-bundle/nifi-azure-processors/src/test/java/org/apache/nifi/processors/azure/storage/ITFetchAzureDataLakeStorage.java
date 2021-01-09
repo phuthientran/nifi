@@ -19,7 +19,6 @@ package org.apache.nifi.processors.azure.storage;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -37,7 +36,6 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureBlobStorageIT {
 
     }
 
-    @Ignore
     @Test
     public void testFetchFile() throws Exception {
         runner.assertValid();

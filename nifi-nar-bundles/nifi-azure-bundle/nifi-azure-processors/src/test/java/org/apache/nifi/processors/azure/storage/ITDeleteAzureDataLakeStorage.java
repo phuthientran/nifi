@@ -19,7 +19,6 @@ package org.apache.nifi.processors.azure.storage;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -36,7 +35,6 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureBlobStorageIT {
         runner.setProperty(DeleteAzureDataLakeStorage.FILE, TEST_FILE_NAME);
     }
 
-    @Ignore
     @Test
     public void testDeleteFile() throws Exception {
         runner.assertValid();
