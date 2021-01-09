@@ -170,7 +170,13 @@ public class ControllerSearchServiceTest  {
         testSubject.search(searchQuery, results);
 
         // then
-        thenFollowingGroupsAndTheirContentsAreSearched(processGroups.keySet());
+        thenFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A,
+                PROCESS_GROUP_FIRST_LEVEL_B,
+                PROCESS_GROUP_SECOND_LEVEL_B_1,
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+        thenContentOfTheFollowingGroupsAreSearched(processGroups.keySet());
     }
 
     @Test
@@ -185,7 +191,6 @@ public class ControllerSearchServiceTest  {
         testSubject.search(searchQuery, results);
         // The authorization is not transitive, children groups might be good candidates.
         thenFollowingGroupsAreSearched(Arrays.asList(
-                PROCESS_GROUP_ROOT,
                 PROCESS_GROUP_FIRST_LEVEL_A,
                 PROCESS_GROUP_SECOND_LEVEL_A,
                 PROCESS_GROUP_SECOND_LEVEL_B_1,
@@ -241,7 +246,13 @@ public class ControllerSearchServiceTest  {
         testSubject.search(searchQuery, results);
 
         // then
-        thenFollowingGroupsAndTheirContentsAreSearched(processGroups.keySet());
+        thenFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A,
+                PROCESS_GROUP_FIRST_LEVEL_B,
+                PROCESS_GROUP_SECOND_LEVEL_B_1,
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+        thenContentOfTheFollowingGroupsAreSearched(processGroups.keySet());
     }
 
 
@@ -324,7 +335,13 @@ public class ControllerSearchServiceTest  {
         testSubject.search(searchQuery, results);
 
         // then
-        thenFollowingGroupsAndTheirContentsAreSearched(processGroups.keySet());
+        thenFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A,
+                PROCESS_GROUP_FIRST_LEVEL_B,
+                PROCESS_GROUP_SECOND_LEVEL_B_1,
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+        thenContentOfTheFollowingGroupsAreSearched(processGroups.keySet());
     }
 
     @Test
@@ -597,11 +614,6 @@ public class ControllerSearchServiceTest  {
     private void thenParameterSpecificComponentTypesAreNotChecked() {
         Mockito.verify(matcherForParameterContext, Mockito.never()).match(Mockito.any(ParameterContext.class), Mockito.any(SearchQuery.class));
         Mockito.verify(matcherForParameter, Mockito.never()).match(Mockito.any(Parameter.class), Mockito.any(SearchQuery.class));
-    }
-
-    private void thenFollowingGroupsAndTheirContentsAreSearched(final Collection<String> searchedProcessGroups) {
-        thenFollowingGroupsAreSearched(searchedProcessGroups);
-        thenContentOfTheFollowingGroupsAreSearched(searchedProcessGroups);
     }
 
     private void thenFollowingGroupsAreSearched(final Collection<String> searchedProcessGroups) {
