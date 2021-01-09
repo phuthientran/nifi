@@ -42,7 +42,6 @@ public class Put<FC, C extends AutoCloseable> {
     protected PartialFunctions.OnCompleted<FC, C> onCompleted;
     protected PartialFunctions.OnFailed<FC, C> onFailed;
     protected PartialFunctions.Cleanup<FC, C> cleanup;
-    protected PartialFunctions.AdjustFailed adjustFailed;
     protected ComponentLog logger;
 
     /**
@@ -118,17 +117,8 @@ public class Put<FC, C extends AutoCloseable> {
                         .filter(flowFile -> !transferredFlowFiles.contains(flowFile)).collect(Collectors.toList());
                 result.routeTo(unprocessedFlowFiles, Relationship.SELF);
 
-                // Extension point to adjust the result, if the result is failed then process onFailed function
-                boolean failed = false;
-                if (adjustFailed != null) {
-                    failed = adjustFailed.apply(context, result);
-                }
-                if (failed && onFailed != null) {
-                    onFailed.apply(context, session, functionContext, connection,null);
-                }
-
                 // OnCompleted processing.
-                if (!failed && onCompleted != null) {
+                if (onCompleted != null) {
                     onCompleted.apply(context, session, functionContext, connection);
                 }
 
@@ -190,15 +180,6 @@ public class Put<FC, C extends AutoCloseable> {
      */
     public void adjustRoute(PartialFunctions.AdjustRoute<FC> f) {
         this.adjustRoute = f;
-    }
-
-    /**
-     * Specify an optional function that adjust if the result is failed before we call the onFailed or onCompleted function.
-     * If the result is failed, return true and do sth.
-     * @param f Function to be called to adjust if the result is failed
-     */
-    public void adjustFailed(PartialFunctions.AdjustFailed f) {
-        this.adjustFailed = f;
     }
 
     /**

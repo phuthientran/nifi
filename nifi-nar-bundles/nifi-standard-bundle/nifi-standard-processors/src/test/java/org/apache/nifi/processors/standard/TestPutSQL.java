@@ -163,27 +163,8 @@ public class TestPutSQL {
 
 
     @Test
-    public void testFailInMiddleWithBadStatementAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadStatement() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        testFailInMiddleWithBadStatement(runner);
-        runner.run();
-
-        runner.assertTransferCount(PutSQL.REL_FAILURE, 4);
-        runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
-    }
-
-    @Test
-    public void testFailInMiddleWithBadStatementAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
-        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
-        testFailInMiddleWithBadStatement(runner);
-        runner.run();
-
-        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
-        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
-    }
-
-    private void testFailInMiddleWithBadStatement(final TestRunner runner) throws InitializationException {
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -192,9 +173,11 @@ public class TestPutSQL {
         runner.enqueue("INSERT INTO PERSONS_AI".getBytes()); // intentionally wrong syntax
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Tom', 3)".getBytes());
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
+        runner.run();
+
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
     }
-
-
 
     @Test
     public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
@@ -219,28 +202,10 @@ public class TestPutSQL {
         }
     }
 
-    @Test
-    public void testFailInMiddleWithBadParameterTypeAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
-        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
-        testFailInMiddleWithBadParameterType(runner);
-        runner.run();
-
-        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
-        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
-    }
 
     @Test
-    public void testFailInMiddleWithBadParameterTypeAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterType() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        testFailInMiddleWithBadParameterType(runner);
-        runner.run();
-
-        runner.assertTransferCount(PutSQL.REL_FAILURE, 4);
-        runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
-    }
-
-    private void testFailInMiddleWithBadParameterType(final TestRunner runner) throws InitializationException, ProcessException, SQLException, IOException {
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -259,6 +224,11 @@ public class TestPutSQL {
         runner.enqueue(data, badAttributes);
         runner.enqueue(data, goodAttributes);
         runner.enqueue(data, goodAttributes);
+        runner.run();
+
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
+
     }
 
     @Test
@@ -295,28 +265,28 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterValueAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterValue() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        testFailInMiddleWithBadParameterValue(runner);
-        runner.run();
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
-        runner.assertTransferCount(PutSQL.REL_RETRY, 4);
+        recreateTable("PERSONS_AI",createPersonsAutoId);
 
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS_AI");
-                assertFalse(rs.next());
-            }
-        }
-    }
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("sql.args.1.value", "84");
 
-    @Test
-    public void testFailInMiddleWithBadParameterValueAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
-        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
-        testFailInMiddleWithBadParameterValue(runner);
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        badAttributes.put("sql.args.1.value", "9999");
+
+        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
         runner.run();
 
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 1);
@@ -333,27 +303,6 @@ public class TestPutSQL {
                 assertFalse(rs.next());
             }
         }
-    }
-
-    private void testFailInMiddleWithBadParameterValue(final TestRunner runner) throws InitializationException, ProcessException, SQLException, IOException {
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
-        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
-        recreateTable("PERSONS_AI",createPersonsAutoId);
-        final Map<String, String> goodAttributes = new HashMap<>();
-        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
-        goodAttributes.put("sql.args.1.value", "84");
-
-        final Map<String, String> badAttributes = new HashMap<>();
-        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
-        badAttributes.put("sql.args.1.value", "9999");
-
-        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
-        runner.enqueue(data, goodAttributes);
-        runner.enqueue(data, badAttributes);
-        runner.enqueue(data, goodAttributes);
-        runner.enqueue(data, goodAttributes);
     }
 
     @Test
