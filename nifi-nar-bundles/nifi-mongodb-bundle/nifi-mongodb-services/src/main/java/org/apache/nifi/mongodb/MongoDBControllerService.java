@@ -22,9 +22,6 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
-import java.util.ArrayList;
-import java.util.List;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -36,6 +33,10 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
+import java.util.ArrayList;
+import java.util.List;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
@@ -74,12 +75,12 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         final SSLContext sslContext;
 
         if (sslService != null) {
-            final SslContextFactory.ClientAuth clientAuth;
+            final SSLContextService.ClientAuth clientAuth;
             if (StringUtils.isBlank(rawClientAuth)) {
-                clientAuth = SslContextFactory.ClientAuth.REQUIRED;
+                clientAuth = SSLContextService.ClientAuth.REQUIRED;
             } else {
                 try {
-                    clientAuth = SslContextFactory.ClientAuth.valueOf(rawClientAuth);
+                    clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
                 } catch (final IllegalArgumentException iae) {
                     throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
                             rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));

@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.remote;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
@@ -51,6 +33,25 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 public class SocketRemoteSiteListener implements RemoteSiteListener {
 
     private final int socketPort;
@@ -59,9 +60,6 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     private final AtomicReference<ProcessGroup> rootGroup = new AtomicReference<>();
     private final NiFiProperties nifiProperties;
     private final PeerDescriptionModifier peerDescriptionModifier;
-
-    private static int EXCEPTION_THRESHOLD_MILLIS = 10_000;
-    private volatile long tlsErrorLastSeen = -1;
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -170,22 +168,9 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                 dn = null;
                             }
                         } catch (final Exception e) {
-                            // TODO: Add SocketProtocolListener#handleTlsError logic here
-                            String msg = String.format("RemoteSiteListener Unable to accept connection from {} due to {}", socket, e.getLocalizedMessage());
-                            // Suppress repeated TLS errors
-                            if (CertificateUtils.isTlsError(e)) {
-                                boolean printedAsWarning = handleTlsError(msg);
-
-                                // TODO: Move into handleTlsError and refactor shared behavior
-                                // If the error was printed as a warning, reset the last seen timer
-                                if (printedAsWarning) {
-                                    tlsErrorLastSeen = System.currentTimeMillis();
-                                }
-                            } else {
-                                LOG.error(msg);
-                                if (LOG.isDebugEnabled()) {
-                                    LOG.error("", e);
-                                }
+                            LOG.error("RemoteSiteListener Unable to accept connection from {} due to {}", socket, e.toString());
+                            if (LOG.isDebugEnabled()) {
+                                LOG.error("", e);
                             }
                             return;
                         }
@@ -319,34 +304,10 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         listenerThread.start();
     }
 
-    private boolean handleTlsError(String msg) {
-        if (tlsErrorRecentlySeen()) {
-            LOG.debug(msg);
-            return false;
-        } else {
-            LOG.error(msg);
-            return true;
-        }
-    }
-
-    /**
-     * Returns {@code true} if any related exception (determined by {@link CertificateUtils#isTlsError(Throwable)}) has occurred within the last
-     * {@link #EXCEPTION_THRESHOLD_MILLIS} milliseconds. Does not evaluate the error locally,
-     * simply checks the last time the timestamp was updated.
-     *
-     * @return true if the time since the last similar exception occurred is below the threshold
-     */
-    private boolean tlsErrorRecentlySeen() {
-        long now = System.currentTimeMillis();
-        return now - tlsErrorLastSeen < EXCEPTION_THRESHOLD_MILLIS;
-    }
-
     private ServerSocket createServerSocket() throws IOException {
         if (sslContext != null) {
-            final SSLServerSocket serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(socketPort);
-            serverSocket.setNeedClientAuth(true);
-            // Enforce custom protocols on socket
-            serverSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
+            final ServerSocket serverSocket = sslContext.getServerSocketFactory().createServerSocket(socketPort);
+            ((SSLServerSocket) serverSocket).setNeedClientAuth(true);
             return serverSocket;
         } else {
             return new ServerSocket(socketPort);

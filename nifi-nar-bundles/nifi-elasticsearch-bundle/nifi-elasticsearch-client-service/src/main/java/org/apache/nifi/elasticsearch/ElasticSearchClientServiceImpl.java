@@ -19,20 +19,6 @@ package org.apache.nifi.elasticsearch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -50,13 +36,26 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
     private ObjectMapper mapper = new ObjectMapper();
@@ -126,7 +125,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final SSLContext sslContext;
         try {
             sslContext = (sslService != null && (sslService.isKeyStoreConfigured() || sslService.isTrustStoreConfigured()))
-                ? sslService.createSSLContext(SslContextFactory.ClientAuth.NONE) : null;
+                ? sslService.createSSLContext(SSLContextService.ClientAuth.NONE) : null;
         } catch (Exception e) {
             getLogger().error("Error building up SSL Context from the supplied configuration.", e);
             throw new InitializationException(e);
@@ -261,7 +260,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             Response response = client.performRequest("POST", "/_bulk", Collections.emptyMap(), entity);
             watch.stop();
 
-            String rawResponse = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+            String rawResponse = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
 
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug(String.format("Response was: %s", rawResponse));
@@ -304,7 +303,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug(String.format("Response for bulk delete: %s",
-                        IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8)));
+                        IOUtils.toString(response.getEntity().getContent(), "UTF-8")));
             }
 
             DeleteOperationResponse dor = new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
@@ -336,7 +335,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             endpoint.append("/").append(id);
             Response response = client.performRequest("GET", endpoint.toString(), new BasicHeader("Content-Type", "application/json"));
 
-            String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+            String body = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
 
             return (Map<String, Object>) mapper.readValue(body, Map.class).get("_source");
         } catch (Exception ex) {

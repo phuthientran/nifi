@@ -43,8 +43,7 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
             .defaultValue("TLS")
             .required(false)
             .allowableValues(RestrictedSSLContextService.buildAlgorithmAllowableValues())
-            .description(StandardSSLContextService.COMMON_TLS_PROTOCOL_DESCRIPTION +
-                    "On Java 11, for example, TLSv1.3 will be the default, but if a client does not support it, TLSv1.2 will be offered as a fallback. TLSv1.0 and TLSv1.1 are not supported at all. ")
+            .description("The algorithm to use for this SSL context. By default, this will choose the highest supported TLS protocol version.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();

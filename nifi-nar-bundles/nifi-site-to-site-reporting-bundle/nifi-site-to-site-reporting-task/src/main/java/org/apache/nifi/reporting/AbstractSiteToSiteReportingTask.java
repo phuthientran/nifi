@@ -29,9 +29,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+
 import javax.json.JsonArray;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
+
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -116,7 +118,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
 
     public void setup(final ReportingContext reportContext) throws IOException {
         if (siteToSiteClient == null) {
-            siteToSiteClient = SiteToSiteUtils.getClient(reportContext, getLogger(), null);
+            siteToSiteClient = SiteToSiteUtils.getClient(reportContext, getLogger());
         }
     }
 
@@ -267,7 +269,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             return recordSchema;
         }
 
-        private JsonNode getNextJsonNode() throws IOException, MalformedRecordException {
+        private JsonNode getNextJsonNode() throws JsonParseException, IOException, MalformedRecordException {
             if (!firstObjectConsumed) {
                 firstObjectConsumed = true;
                 return firstJsonNode;

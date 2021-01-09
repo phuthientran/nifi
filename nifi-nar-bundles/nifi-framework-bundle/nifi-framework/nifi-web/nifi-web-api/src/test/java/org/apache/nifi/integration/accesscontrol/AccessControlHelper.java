@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import javax.ws.rs.core.Response;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.integration.NiFiWebApiTest;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
@@ -35,6 +29,13 @@ import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
+
+import javax.ws.rs.core.Response;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Access control test for the dfm user.
@@ -68,7 +69,8 @@ public class AccessControlHelper {
         // configure the location of the nifi properties
         File nifiPropertiesFile = new File(nifiPropertiesPath);
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
-        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null);
+
+        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, null);
         flowXmlPath = props.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE);
 
         final File libTargetDir = new File("target/test-classes/access-control/lib");

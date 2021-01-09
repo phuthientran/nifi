@@ -20,12 +20,18 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
+
 import org.apache.nifi.logging.NiFiLog;
-import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.security.util.TlsException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,14 +39,6 @@ public final class SocketUtils {
 
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(SocketUtils.class));
 
-    /**
-     * Returns a {@link Socket} (effectively used as a client socket) for the given address and configuration.
-     *
-     * @param address   the {@link InetSocketAddress} for the socket (used for hostname and port)
-     * @param config the {@link SocketConfiguration}
-     * @return the socket (can be configured for SSL)
-     * @throws IOException  if there is a problem creating the socket
-     */
     public static Socket createSocket(final InetSocketAddress address, final SocketConfiguration config) throws IOException {
         if (address == null) {
             throw new IllegalArgumentException("Socket address may not be null.");
@@ -60,14 +58,7 @@ public final class SocketUtils {
         if (sslContext == null) {
             socket = new Socket(address.getHostName(), address.getPort());
         } else {
-            /* This would ideally be refactored to a shared create method but Socket and ServerSocket
-             * do not share a common interface; Socket is effectively "client socket" in this context
-             */
-            Socket tempSocket = sslContext.getSocketFactory().createSocket(address.getHostName(), address.getPort());
-            final SSLSocket sslSocket = (SSLSocket) tempSocket;
-            // Enforce custom protocols on socket
-            sslSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
-            socket = sslSocket;
+            socket = sslContext.getSocketFactory().createSocket(address.getHostName(), address.getPort());
         }
 
         if (config.getSocketTimeout() != null) {
@@ -105,17 +96,8 @@ public final class SocketUtils {
         return socket;
     }
 
-    /**
-     * Returns a {@link ServerSocket} for the given port and configuration.
-     *
-     * @param port   the port for the socket
-     * @param config the {@link ServerSocketConfiguration}
-     * @return the server socket (can be configured for SSL)
-     * @throws IOException  if there is a problem creating the socket
-     * @throws TlsException if there is a problem creating the socket
-     */
     public static ServerSocket createServerSocket(final int port, final ServerSocketConfiguration config)
-            throws IOException, TlsException {
+            throws IOException, KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, CertificateException {
         if (config == null) {
             throw new NullPointerException("Configuration may not be null.");
         }
@@ -126,10 +108,7 @@ public final class SocketUtils {
             serverSocket = new ServerSocket(port);
         } else {
             serverSocket = sslContext.getServerSocketFactory().createServerSocket(port);
-            final SSLServerSocket sslServerSocket = (SSLServerSocket) serverSocket;
-            sslServerSocket.setNeedClientAuth(config.getNeedClientAuth());
-            // Enforce custom protocols on socket
-            sslServerSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
+            ((SSLServerSocket) serverSocket).setNeedClientAuth(config.getNeedClientAuth());
         }
 
         if (config.getSocketTimeout() != null) {
@@ -147,29 +126,6 @@ public final class SocketUtils {
         return serverSocket;
     }
 
-    /**
-     * Returns a {@link SSLServerSocket} for the given port and configuration.
-     *
-     * @param port                      the port for the socket
-     * @param serverSocketConfiguration the {@link ServerSocketConfiguration}
-     * @return the SSL server socket
-     * @throws TlsException if there was a problem creating the socket
-     */
-    public static SSLServerSocket createSSLServerSocket(final int port, final ServerSocketConfiguration serverSocketConfiguration) throws TlsException {
-        try {
-            ServerSocket serverSocket = createServerSocket(port, serverSocketConfiguration);
-            if (serverSocket instanceof SSLServerSocket) {
-                return ((SSLServerSocket) serverSocket);
-            } else {
-                throw new TlsException("Created server socket does not support SSL/TLS");
-            }
-        } catch (IOException e) {
-            logger.error("Encountered an error creating SSLServerSocket: {}", e.getLocalizedMessage());
-            throw new TlsException("Error creating SSLServerSocket", e);
-        }
-
-    }
-
     public static void closeQuietly(final Socket socket) {
         if (socket == null) {
             return;
@@ -177,17 +133,17 @@ public final class SocketUtils {
 
         try {
             try {
-                // Can't shutdown input/output individually with secure sockets
-                if (!(socket instanceof SSLSocket)) {
-                    if (!socket.isInputShutdown()) {
+                // can't shudown input/output individually with secure sockets
+                if ((socket instanceof SSLSocket) == false) {
+                    if (socket.isInputShutdown() == false) {
                         socket.shutdownInput();
                     }
-                    if (!socket.isOutputShutdown()) {
+                    if (socket.isOutputShutdown() == false) {
                         socket.shutdownOutput();
                     }
                 }
             } finally {
-                if (!socket.isClosed()) {
+                if (socket.isClosed() == false) {
                     socket.close();
                 }
             }

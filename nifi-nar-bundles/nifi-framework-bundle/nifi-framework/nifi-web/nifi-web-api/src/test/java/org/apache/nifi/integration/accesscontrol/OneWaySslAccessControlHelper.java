@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import javax.ws.rs.client.Client;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.integration.util.NiFiTestServer;
@@ -31,9 +27,14 @@ import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.util.WebUtils;
+
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.client.Client;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Access control test for the dfm user.
@@ -57,7 +58,7 @@ public class OneWaySslAccessControlHelper {
         File nifiPropertiesFile = new File(nifiPropertiesPath);
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
 
-        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath);
+        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, null);
         flowXmlPath = props.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE);
 
         // delete the database directory to avoid issues with re-registration in testRequestAccessUsingToken
@@ -89,11 +90,8 @@ public class OneWaySslAccessControlHelper {
         // get the base url
         baseUrl = server.getBaseUrl() + CONTEXT_PATH;
 
-        // Create a TlsConfiguration for the truststore properties only
-        TlsConfiguration trustOnlyTlsConfiguration = TlsConfiguration.fromNiFiPropertiesTruststoreOnly(props);
-
         // create the user
-        final Client client = WebUtils.createClient(null, SslContextFactory.createSslContext(trustOnlyTlsConfiguration));
+        final Client client = WebUtils.createClient(null, createTrustContext(props));
         user = new NiFiTestUser(client, null);
     }
 
@@ -103,6 +101,12 @@ public class OneWaySslAccessControlHelper {
 
     public String getBaseUrl() {
         return baseUrl;
+    }
+
+    private static SSLContext createTrustContext(final NiFiProperties props) throws Exception {
+        return SslContextFactory.createTrustSslContext(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
+                props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray(),
+                props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE), "TLS");
     }
 
     public void cleanup() throws Exception {

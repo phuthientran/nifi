@@ -16,10 +16,15 @@
  */
 package org.apache.nifi.io.socket;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+
 import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 
 public final class ServerSocketConfiguration {
 
@@ -27,18 +32,18 @@ public final class ServerSocketConfiguration {
     private Integer socketTimeout;
     private Boolean reuseAddress;
     private Integer receiveBufferSize;
-    private TlsConfiguration tlsConfiguration;
+    private SSLContextFactory sslContextFactory;
 
     public ServerSocketConfiguration() {
     }
 
-    public SSLContext createSSLContext() throws TlsException {
-        // ClientAuth was hardcoded to REQUIRED in removed SSLContextFactory and overridden in SocketUtils when the socket is created
-        return SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
+    public SSLContext createSSLContext()
+            throws KeyManagementException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException, CertificateException, FileNotFoundException, IOException {
+        return sslContextFactory == null ? null : sslContextFactory.createSslContext();
     }
 
-    public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {
-        this.tlsConfiguration = tlsConfiguration;
+    public void setSSLContextFactory(final SSLContextFactory sslContextFactory) {
+        this.sslContextFactory = sslContextFactory;
     }
 
     public Integer getSocketTimeout() {

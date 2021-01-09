@@ -16,10 +16,15 @@
  */
 package org.apache.nifi.io.socket;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+
 import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 
 public final class SocketConfiguration {
 
@@ -31,15 +36,15 @@ public final class SocketConfiguration {
     private Boolean oobInline;
     private Boolean tcpNoDelay;
     private Integer trafficClass;
-    private TlsConfiguration tlsConfiguration;
+    private SSLContextFactory sslContextFactory;
 
-    public SSLContext createSSLContext() throws TlsException {
-        // This is only used for client sockets, so the client auth setting is ignored
-        return SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.NONE);
+    public SSLContext createSSLContext()
+            throws KeyManagementException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException, CertificateException, FileNotFoundException, IOException {
+        return sslContextFactory == null ? null : sslContextFactory.createSslContext();
     }
 
-    public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {
-        this.tlsConfiguration = tlsConfiguration;
+    public void setSSLContextFactory(final SSLContextFactory sslContextFactory) {
+        this.sslContextFactory = sslContextFactory;
     }
 
     public Integer getSocketTimeout() {

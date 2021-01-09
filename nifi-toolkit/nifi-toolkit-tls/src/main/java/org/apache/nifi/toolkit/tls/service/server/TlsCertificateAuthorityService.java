@@ -18,14 +18,6 @@
 package org.apache.nifi.toolkit.tls.service.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.security.KeyPair;
-import java.security.KeyStore;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
 import org.apache.nifi.toolkit.tls.manager.writer.JsonConfigurationWriter;
@@ -42,6 +34,14 @@ import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.KeyPair;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 
 /**
  * Starts a Jetty server that will either load an existing CA or create one and use it to sign CSRs
@@ -63,7 +63,7 @@ public class TlsCertificateAuthorityService {
         Server server = new Server();
 
         SslContextFactory sslContextFactory = new SslContextFactory();
-        sslContextFactory.setIncludeProtocols(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        sslContextFactory.setIncludeProtocols("TLSv1.2");
         sslContextFactory.setKeyStore(keyStore);
         sslContextFactory.setKeyManagerPassword(keyPassword);
 

@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.controller.reporting;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
@@ -55,6 +47,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+
 public class TestStandardReportingContext {
 
     private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
@@ -73,6 +74,7 @@ public class TestStandardReportingContext {
 
     @Before
     public void setup() {
+
         flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         auditService = Mockito.mock(AuditService.class);
         final Map<String, String> otherProps = new HashMap<>();

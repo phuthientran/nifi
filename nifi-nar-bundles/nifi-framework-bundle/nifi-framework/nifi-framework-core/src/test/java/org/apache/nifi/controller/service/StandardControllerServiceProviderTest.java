@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.service;
 
-import java.util.Collections;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -39,6 +38,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.Collections;
+
 
 
 public class StandardControllerServiceProviderTest {
@@ -53,7 +54,8 @@ public class StandardControllerServiceProviderTest {
 
     @BeforeClass
     public static void setupSuite() {
-        nifiProperties = NiFiProperties.createBasicNiFiProperties(StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
@@ -65,6 +67,7 @@ public class StandardControllerServiceProviderTest {
         flowController = Mockito.mock(FlowController.class);
         Mockito.when(flowController.getExtensionManager()).thenReturn(extensionManager);
     }
+
 
     @Before
     public void setup() throws Exception {

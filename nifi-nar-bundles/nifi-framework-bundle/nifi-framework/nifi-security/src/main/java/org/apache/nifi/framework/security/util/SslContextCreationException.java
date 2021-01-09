@@ -14,28 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.util;
-
-import java.security.GeneralSecurityException;
+package org.apache.nifi.framework.security.util;
 
 /**
- * A common exception for any TLS-configuration or -operation related exceptions in NiFi framework
- * and extensions. The nested cause can be examined if the caller can resolve various root causes,
- * or the top-level exception can be handled generically if no recovery is available.
+ * Represents the exceptional case when a SSL context failed creation.
+ *
  */
-public class TlsException extends GeneralSecurityException {
-    public TlsException() {
+public class SslContextCreationException extends SslException {
+
+    public SslContextCreationException(Throwable cause) {
+        super(cause);
     }
 
-    public TlsException(String message) {
-        super(message);
-    }
-
-    public TlsException(String message, Throwable cause) {
+    public SslContextCreationException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public TlsException(Throwable cause) {
-        super(cause);
+    public SslContextCreationException(String message) {
+        super(message);
     }
+
+    public SslContextCreationException() {
+    }
+
 }

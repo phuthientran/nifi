@@ -22,10 +22,6 @@ import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.Session;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -45,6 +41,12 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @Tags({"cassandra", "dbcp", "database", "connection", "pooling"})
 @CapabilityDescription("Provides connection session for Cassandra processors to work with Apache Cassandra.")
@@ -88,7 +90,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
                     + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
                     + "has been defined and enabled.")
             .required(false)
-            .allowableValues(SslContextFactory.ClientAuth.values())
+            .allowableValues(SSLContextService.ClientAuth.values())
             .defaultValue("REQUIRED")
             .build();
 
@@ -210,12 +212,12 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             final SSLContext sslContext;
 
             if (sslService != null) {
-                final SslContextFactory.ClientAuth clientAuth;
+                final SSLContextService.ClientAuth clientAuth;
                 if (StringUtils.isBlank(rawClientAuth)) {
-                    clientAuth = SslContextFactory.ClientAuth.REQUIRED;
+                    clientAuth = SSLContextService.ClientAuth.REQUIRED;
                 } else {
                     try {
-                        clientAuth = SslContextFactory.ClientAuth.valueOf(rawClientAuth);
+                        clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
                     } catch (final IllegalArgumentException iae) {
                         throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
                                 rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
@@ -262,7 +264,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             return null;
         }
 
-        final String[] contactPointStringList = contactPointList.split(",");
+        final List<String> contactPointStringList = Arrays.asList(contactPointList.split(","));
         List<InetSocketAddress> contactPoints = new ArrayList<>();
 
         for (String contactPointEntry : contactPointStringList) {

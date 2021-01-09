@@ -22,10 +22,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.mail.Email;
+import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.SimpleEmail;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
@@ -50,7 +51,7 @@ public class TestListenSMTP {
     }
 
     @Test
-    public void validateSuccessfulInteraction() throws Exception {
+    public void validateSuccessfulInteraction() throws Exception, EmailException {
         int port = NetworkUtils.availablePort();
 
         TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
@@ -89,8 +90,7 @@ public class TestListenSMTP {
     }
 
     @Test
-    public void validateSuccessfulInteractionWithTls() throws Exception {
-        // TODO: Setting system properties without cleaning/restoring at the end of a test is an anti-pattern and can have side effects
+    public void validateSuccessfulInteractionWithTls() throws Exception, EmailException {
         System.setProperty("mail.smtp.ssl.trust", "*");
         System.setProperty("javax.net.ssl.keyStore", "src/test/resources/keystore.jks");
         System.setProperty("javax.net.ssl.keyStorePassword", "passwordpassword");
@@ -113,7 +113,7 @@ public class TestListenSMTP {
 
         // and add the SSL context to the runner
         runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.setProperty(ListenSMTP.CLIENT_AUTH, SslContextFactory.ClientAuth.NONE.name());
+        runner.setProperty(ListenSMTP.CLIENT_AUTH, SSLContextService.ClientAuth.NONE.name());
         runner.assertValid();
 
         int messageCount = 5;
@@ -152,7 +152,7 @@ public class TestListenSMTP {
     }
 
     @Test
-    public void validateTooLargeMessage() throws Exception {
+    public void validateTooLargeMessage() throws Exception, EmailException {
         int port = NetworkUtils.availablePort();
 
         TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);

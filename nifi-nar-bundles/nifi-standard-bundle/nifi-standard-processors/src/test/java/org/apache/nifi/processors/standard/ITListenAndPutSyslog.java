@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.reporting.InitializationException;
@@ -33,6 +31,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+
 /**
  * Tests PutSyslog sending messages to ListenSyslog to simulate a syslog server forwarding
  * to ListenSyslog, or PutSyslog sending to a syslog server.
@@ -40,9 +41,6 @@ import org.slf4j.LoggerFactory;
 public class ITListenAndPutSyslog {
 
     static final Logger LOGGER = LoggerFactory.getLogger(ITListenAndPutSyslog.class);
-
-    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
-    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
 
     private ListenSyslog listenSyslog;
     private TestRunner listenSyslogRunner;
@@ -112,7 +110,6 @@ public class ITListenAndPutSyslog {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TLS_PROTOCOL_VERSION);
         runner.enableControllerService(sslContextService);
         return sslContextService;
     }
@@ -153,7 +150,7 @@ public class ITListenAndPutSyslog {
 
         // send the messages
         for (int i=0; i < numMessages; i++) {
-            putSyslogRunner.enqueue("incoming data".getBytes(StandardCharsets.UTF_8));
+            putSyslogRunner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
         }
         putSyslogRunner.run(numMessages, false);
 

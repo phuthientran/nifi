@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.cluster.protocol.spring;
 
-import java.util.concurrent.TimeUnit;
+import org.apache.nifi.io.socket.SSLContextFactory;
 import org.apache.nifi.io.socket.SocketConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.factory.FactoryBean;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Factory bean for creating a singleton SocketConfiguration instance.
@@ -37,14 +38,11 @@ public class SocketConfigurationFactoryBean implements FactoryBean<SocketConfigu
         if (configuration == null) {
             configuration = new SocketConfiguration();
 
-            final int timeout = (int) FormatUtils.getPreciseTimeDuration(properties.getClusterNodeReadTimeout(), TimeUnit.MILLISECONDS);
+            final int timeout = (int) FormatUtils.getTimeDuration(properties.getClusterNodeReadTimeout(), TimeUnit.MILLISECONDS);
             configuration.setSocketTimeout(timeout);
             configuration.setReuseAddress(true);
-
-            // If the cluster protocol is marked as secure
-            if (Boolean.parseBoolean(properties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_IS_SECURE))) {
-                // Parse the TLS configuration from the properties
-                configuration.setTlsConfiguration(TlsConfiguration.fromNiFiProperties(properties));
+            if (Boolean.valueOf(properties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_IS_SECURE))) {
+                configuration.setSSLContextFactory(new SSLContextFactory(properties));
             }
         }
         return configuration;

@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.StringJoiner;
-import javax.ws.rs.core.Response;
 import net.minidev.json.JSONObject;
 import org.apache.nifi.integration.util.SourceTestProcessor;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
@@ -36,6 +30,13 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import javax.ws.rs.core.Response;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  * Access token endpoint test.
@@ -219,8 +220,6 @@ public class ITAccessTokenEndpoint {
         Assert.assertEquals("ACTIVE", accessStatus.getStatus());
     }
 
-    // // TODO: Revisit the HTTP status codes in this test after logout functionality change
-    // @Ignore("This test is failing before refactoring")
     @Test
     public void testLogOutSuccess() throws Exception {
         String accessStatusUrl = helper.getBaseUrl() + "/access";
