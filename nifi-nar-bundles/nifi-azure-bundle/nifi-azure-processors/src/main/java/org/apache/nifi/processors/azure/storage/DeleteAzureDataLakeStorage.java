@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.azure.storage.file.datalake.DataLakeDirectoryClient;
-import com.azure.storage.file.datalake.DataLakeFileClient;
-import com.azure.storage.file.datalake.DataLakeFileSystemClient;
-import com.azure.storage.file.datalake.DataLakeServiceClient;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -31,6 +26,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
+
+import com.azure.storage.file.datalake.DataLakeDirectoryClient;
+import com.azure.storage.file.datalake.DataLakeFileClient;
+import com.azure.storage.file.datalake.DataLakeFileSystemClient;
+import com.azure.storage.file.datalake.DataLakeServiceClient;
 
 import java.util.concurrent.TimeUnit;
 
@@ -43,6 +43,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
+
         if (flowFile == null) {
             return;
         }
@@ -52,21 +53,11 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
             final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
             final String fileName = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
-
-            if (StringUtils.isBlank(fileSystem)) {
-                throw new ProcessException(FILESYSTEM.getDisplayName() + " property evaluated to empty string. " +
-                        FILESYSTEM.getDisplayName() + " must be specified as a non-empty string.");
-            }
-            if (StringUtils.isBlank(fileName)) {
-                throw new ProcessException(FILE.getDisplayName() + " property evaluated to empty string. " +
-                        FILE.getDisplayName() + " must be specified as a non-empty string.");
-            }
-
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
-            final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
-            final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
-            final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
+            final DataLakeFileSystemClient dataLakeFileSystemClient = storageClient.getFileSystemClient(fileSystem);
+            final DataLakeDirectoryClient directoryClient = dataLakeFileSystemClient.getDirectoryClient(directory);
 
+            final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
             fileClient.delete();
             session.transfer(flowFile, REL_SUCCESS);
 
