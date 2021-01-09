@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -274,7 +273,6 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         assertNull(regexAttributesToSendField.get(processor));
 
     }
-
     @Test
     public void testEmptyGzipHttpReponse() throws Exception {
         addHandler(new EmptyGzipResponseHandler());
@@ -300,31 +298,6 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
         bundle.assertAttributeEquals("Content-Type", "text/plain");
-    }
-
-    @Test
-    public void testShouldAllowExtension() {
-        // Arrange
-        class ExtendedInvokeHTTP extends InvokeHTTP {
-            private int extendedNumber = -1;
-
-            public ExtendedInvokeHTTP(int num) {
-                super();
-                this.extendedNumber = num;
-            }
-
-            public int extendedMethod() {
-                return this.extendedNumber;
-            }
-        }
-
-        int num = Double.valueOf(Math.random() * 100).intValue();
-
-        // Act
-        ExtendedInvokeHTTP eih = new ExtendedInvokeHTTP(num);
-
-        // Assert
-        assertEquals(num, eih.extendedMethod());
     }
 
     public static class EmptyGzipResponseHandler extends AbstractHandler {
