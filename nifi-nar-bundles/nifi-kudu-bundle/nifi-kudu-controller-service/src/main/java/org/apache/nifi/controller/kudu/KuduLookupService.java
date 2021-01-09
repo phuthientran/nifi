@@ -321,7 +321,6 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                     break;
                 case BINARY:
                 case STRING:
-                case VARCHAR:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.STRING.getDataType()));
                     break;
                 case DOUBLE:
