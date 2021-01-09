@@ -18,7 +18,6 @@ package org.apache.nifi.stateless.core;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.PropertyConfiguration;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,7 +31,7 @@ public class StatelessControllerServiceConfiguration {
 
     private final AtomicBoolean enabled = new AtomicBoolean(false);
     private String annotationData;
-    private Map<PropertyDescriptor, PropertyConfiguration> properties = new HashMap<>();
+    private Map<PropertyDescriptor, String> properties = new HashMap<>();
 
     public StatelessControllerServiceConfiguration(final ControllerService service, final String name) {
         this.service = service;
@@ -51,20 +50,20 @@ public class StatelessControllerServiceConfiguration {
         return this.enabled.get();
     }
 
-    public void setProperties(final Map<PropertyDescriptor, PropertyConfiguration> props) {
+    public void setProperties(final Map<PropertyDescriptor, String> props) {
         this.properties = new HashMap<>(props);
     }
 
-    public void setProperty(final PropertyDescriptor key, final PropertyConfiguration value) {
+    public void setProperty(final PropertyDescriptor key, final String value) {
         this.properties.put(key, value);
     }
 
     public String getProperty(final PropertyDescriptor descriptor) {
-        final PropertyConfiguration value = properties.get(descriptor);
+        final String value = properties.get(descriptor);
         if (value == null) {
             return descriptor.getDefaultValue();
         } else {
-            return value.getRawValue();
+            return value;
         }
     }
 
@@ -76,7 +75,7 @@ public class StatelessControllerServiceConfiguration {
         return annotationData;
     }
 
-    public Map<PropertyDescriptor, PropertyConfiguration> getProperties() {
+    public Map<PropertyDescriptor, String> getProperties() {
         return Collections.unmodifiableMap(properties);
     }
 
