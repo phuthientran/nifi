@@ -98,6 +98,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
         pullRequest = PullRequest.newBuilder()
                 .setMaxMessages(batchSize)
+                .setReturnImmediately(false)
                 .setSubscription(getSubscriptionName(context))
                 .build();
 
