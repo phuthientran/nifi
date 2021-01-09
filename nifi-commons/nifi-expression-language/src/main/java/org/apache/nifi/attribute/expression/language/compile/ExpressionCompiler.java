@@ -57,7 +57,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDel
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GetStateVariableEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.HashEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IfElseEvaluator;
@@ -178,7 +177,6 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_STATE_VALUE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN_OR_EQUAL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HASH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HOSTNAME;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IF_ELSE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IN;
@@ -683,11 +681,6 @@ public class ExpressionCompiler {
                 return addToken(new ReplaceAllEvaluator(toStringEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "first argument to replaceAll"),
                     toStringEvaluator(argEvaluators.get(1), "second argument to replaceAll")), "replaceAll");
-            }
-            case HASH: {
-                verifyArgCount(argEvaluators, 1, "hash");
-                return addToken(new HashEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to hash")), "hash");
             }
             case PAD_LEFT: {
                 if (argEvaluators.size() == 1) {
