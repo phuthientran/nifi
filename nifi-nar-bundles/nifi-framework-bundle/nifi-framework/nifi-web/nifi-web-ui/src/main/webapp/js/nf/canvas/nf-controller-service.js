@@ -1589,8 +1589,8 @@
         }).promise();
     };
 
-    var getParameterContext = function (groupId) {
-        if (_.isNil(groupId)) {
+    var getParameterContext = function (groupId, controllerServiceEntity) {
+        if (_.isNil(controllerServiceEntity.parentGroupId)) {
             return null;
         }
 
@@ -1598,7 +1598,7 @@
 
         // attempt to identify the parameter context, conditional based on whether
         // the user is configuring the current process group
-        if (groupId === nfCanvasUtils.getGroupId()) {
+        if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
             parameterContext = nfCanvasUtils.getParameterContext();
         } else {
             var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
@@ -1896,7 +1896,7 @@
                         return goToServiceFromProperty(serviceTable);
                     },
                     getParameterContext: function (groupId) {
-                        return getParameterContext(groupId);
+                        return getParameterContext(groupId, controllerServiceEntity);
                     }
                 });
 
@@ -2083,7 +2083,7 @@
                     supportsGoTo: true,
                     readOnly: true,
                     getParameterContext: function (groupId) {
-                        return getParameterContext(groupId);
+                        return getParameterContext(groupId, controllerServiceEntity);
                     }
                 });
 
@@ -2185,9 +2185,7 @@
                 controllerServiceDialog.modal('setButtonModel', buttons);
 
                 // load the property table
-                $('#controller-service-properties')
-                    .propertytable('setGroupId', controllerService.parentGroupId)
-                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
+                $('#controller-service-properties').propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
 
                 // show the details
                 controllerServiceDialog.modal('show');
