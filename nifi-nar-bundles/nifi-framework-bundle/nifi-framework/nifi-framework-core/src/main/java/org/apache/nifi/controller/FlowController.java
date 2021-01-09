@@ -120,7 +120,6 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.QueueProvider;
-import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.repository.StandardCounterRepository;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardQueueProvider;
@@ -152,7 +151,6 @@ import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
 import org.apache.nifi.controller.status.analytics.CachingConnectionStatusAnalyticsEngine;
-import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsModelMapFactory;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
@@ -685,28 +683,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory = new StatusAnalyticsModelMapFactory(extensionManager, nifiProperties);
 
-            analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, statusAnalyticsModelMapFactory,
+            analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, statusAnalyticsModelMapFactory,
                     predictionIntervalMillis, queryIntervalMillis, modelScoreName, modelScoreThreshold);
-
-            timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Long startTs = System.currentTimeMillis();
-                        RepositoryStatusReport statusReport = flowFileEventRepository.reportTransferEvents(startTs);
-                        flowManager.findAllConnections().forEach(connection -> {
-                            ConnectionStatusAnalytics connectionStatusAnalytics = ((ConnectionStatusAnalytics)analyticsEngine.getStatusAnalytics(connection.getIdentifier()));
-                            connectionStatusAnalytics.refresh();
-                            connectionStatusAnalytics.loadPredictions(statusReport);
-                        });
-                        Long endTs = System.currentTimeMillis();
-                        LOG.debug("Time Elapsed for Prediction for loading all predictions: {}", endTs - startTs);
-                    } catch (final Exception e) {
-                        LOG.error("Failed to generate predictions", e);
-                    }
-                }
-            }, 0L, 15, TimeUnit.SECONDS);
-
         }
 
         eventAccess = new StandardEventAccess(this, flowFileEventRepository);
