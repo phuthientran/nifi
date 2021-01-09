@@ -260,11 +260,11 @@ public class PutKudu extends AbstractKuduProcessor {
         batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         ffbatch   = context.getProperty(FLOWFILE_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue().toUpperCase());
-        createKerberosUserAndKuduClient(context);
+        createKuduClient(context);
     }
 
     @Override
-    protected void onTrigger(final ProcessContext context, final ProcessSession session, KuduClient kuduClient) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final List<FlowFile> flowFiles = session.get(ffbatch);
         if (flowFiles.isEmpty()) {
             return;
@@ -272,22 +272,23 @@ public class PutKudu extends AbstractKuduProcessor {
 
         final KerberosUser user = getKerberosUser();
         if (user == null) {
-            trigger(context, session, flowFiles, kuduClient);
+            trigger(context, session, flowFiles);
             return;
         }
 
-        final PrivilegedExceptionAction<Void> privilegedAction = () -> {
-            trigger(context, session, flowFiles, kuduClient);
+        final PrivilegedExceptionAction<Void> privelegedAction = () -> {
+            trigger(context, session, flowFiles);
             return null;
         };
 
-        final KerberosAction<Void> action = new KerberosAction<>(user, privilegedAction, getLogger());
+        final KerberosAction<Void> action = new KerberosAction<>(user, privelegedAction, getLogger());
         action.execute();
     }
 
-    private void trigger(final ProcessContext context, final ProcessSession session, final List<FlowFile> flowFiles, KuduClient kuduClient) throws ProcessException {
+    private void trigger(final ProcessContext context, final ProcessSession session, final List<FlowFile> flowFiles) throws ProcessException {
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
+        final KuduClient kuduClient = getKuduClient();
         final KuduSession kuduSession = createKuduSession(kuduClient);
 
         final Map<FlowFile, Integer> numRecords = new HashMap<>();
