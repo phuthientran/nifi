@@ -17,10 +17,13 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -34,12 +37,8 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
-import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileTransfer;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import org.apache.nifi.processors.standard.util.FTPTransfer;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -78,7 +77,6 @@ public class ListFTP extends ListFileTransfer {
         properties.add(USERNAME);
         properties.add(FTPTransfer.PASSWORD);
         properties.add(REMOTE_PATH);
-        properties.add(RECORD_WRITER);
         properties.add(DISTRIBUTED_CACHE_SERVICE);
         properties.add(FTPTransfer.RECURSIVE_SEARCH);
         properties.add(FTPTransfer.FOLLOW_SYMLINK);

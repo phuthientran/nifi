@@ -17,10 +17,19 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -36,18 +45,10 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
-import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileInfo;
+import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -75,7 +76,7 @@ import java.util.stream.Collectors;
     + "a new Primary Node is selected, the new node will not duplicate the data that was listed by the previous Primary Node.")
 public class ListSFTP extends ListFileTransfer {
 
-    private volatile Predicate<FileInfo> fileFilter;
+    private final AtomicReference<Predicate<FileInfo>> fileFilterRef = new AtomicReference();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -90,7 +91,6 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
         properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
         properties.add(REMOTE_PATH);
-        properties.add(RECORD_WRITER);
         properties.add(DISTRIBUTED_CACHE_SERVICE);
         properties.add(SFTPTransfer.RECURSIVE_SEARCH);
         properties.add(SFTPTransfer.FOLLOW_SYMLINK);
@@ -146,13 +146,13 @@ public class ListSFTP extends ListFileTransfer {
         final List<FileInfo> listing = super.performListing(context, minTimestamp);
 
         return listing.stream()
-                .filter(fileFilter)
+                .filter(fileFilterRef.get())
                 .collect(Collectors.toList());
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        fileFilter = createFileFilter(context);
+        fileFilterRef.set(createFileFilter(context));
     }
 
     private Predicate<FileInfo> createFileFilter(final ProcessContext context) {
