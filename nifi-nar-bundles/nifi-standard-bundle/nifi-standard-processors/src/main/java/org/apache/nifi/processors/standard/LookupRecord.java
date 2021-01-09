@@ -306,6 +306,9 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     }
 
     private Set<Relationship> doInPlaceReplacement(Record record, FlowFile flowFile, ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
+
+        final String lookupKey = (String) context.getProperty(LOOKUP_SERVICE).asControllerService(LookupService.class).getRequiredKeys().iterator().next();
+
         final Map<String, RecordPath> recordPaths = flowFileContext.getKey();
         final Map<String, Object> lookupCoordinates = new HashMap<>(recordPaths.size());
 
@@ -327,9 +330,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             for (FieldValue fieldValue : lookupFieldValues) {
                 final Object coordinateValue = (fieldValue.getValue() instanceof Number || fieldValue.getValue() instanceof Boolean)
                         ? fieldValue.getValue() : DataTypeUtils.toString(fieldValue.getValue(), (String) null);
-
-                lookupCoordinates.clear();
-                lookupCoordinates.put(coordinateKey, coordinateValue);
+                lookupCoordinates.put(lookupKey, coordinateValue);
 
                 final Optional<?> lookupValueOption;
                 try {
