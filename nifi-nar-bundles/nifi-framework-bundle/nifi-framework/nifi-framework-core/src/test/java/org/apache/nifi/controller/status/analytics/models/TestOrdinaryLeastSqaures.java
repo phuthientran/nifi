@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.controller.status.analytics.models;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -27,7 +27,7 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.math3.linear.SingularMatrixException;
 import org.junit.Test;
 
-public class TestOrdinaryLeastSquares {
+public class TestOrdinaryLeastSqaures {
 
 
     @Test
@@ -53,8 +53,7 @@ public class TestOrdinaryLeastSquares {
         } catch (SingularMatrixException sme){
             exOccurred = true;
         }
-        // SingularMatrixException should not be thrown, it will instead be logged
-        assertFalse(exOccurred);
+        assertTrue(exOccurred);
 
     }
 
@@ -150,4 +149,8 @@ public class TestOrdinaryLeastSquares {
         assert(olsR2 > srR2);
 
     }
+
+
+
+
 }
