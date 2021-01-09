@@ -42,7 +42,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
     @Before
     public void setup() {
         tlsCertificateAuthorityClientCommandLine = new TlsCertificateAuthorityClientCommandLine();
-        testToken = "testToken16bytes";
+        testToken = "testToken";
     }
 
     @Test
