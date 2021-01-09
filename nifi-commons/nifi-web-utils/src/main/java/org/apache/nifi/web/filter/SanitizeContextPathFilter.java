@@ -23,7 +23,6 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,17 +32,16 @@ import org.slf4j.LoggerFactory;
  */
 public class SanitizeContextPathFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(SanitizeContextPathFilter.class);
-    private static final String ALLOWED_CONTEXT_PATHS_PARAMETER_NAME = "allowedContextPaths";
 
-    private String allowedContextPaths = "";
+    private String whitelistedContextPaths = "";
+
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        String providedAllowedList = filterConfig.getServletContext().getInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER_NAME);
-
-        logger.debug("SanitizeContextPathFilter received provided allowed context paths from NiFi properties: " + providedAllowedList);
-        if (StringUtils.isNotBlank(providedAllowedList)) {
-            allowedContextPaths = providedAllowedList;
+        String providedWhitelist = filterConfig.getServletContext().getInitParameter("whitelistedContextPaths");
+        logger.debug("SanitizeContextPathFilter received provided whitelisted context paths from NiFi properties: " + providedWhitelist);
+        if (providedWhitelist != null) {
+            whitelistedContextPaths = providedWhitelist;
         }
     }
 
@@ -58,12 +56,11 @@ public class SanitizeContextPathFilter implements Filter {
 
     /**
      * Determines, sanitizes, and injects the {@code contextPath} attribute into the {@code request}. If not present, an empty string {@code ""} is injected.
-     *
      * @param request the request
      */
     protected void injectContextPathAttribute(ServletRequest request) {
         // Capture the provided context path headers and sanitize them before using in the response
-        String contextPath = WebUtils.sanitizeContextPath(request, allowedContextPaths, "");
+        String contextPath = WebUtils.sanitizeContextPath(request, whitelistedContextPaths, "");
         request.setAttribute("contextPath", contextPath);
 
         logger.debug("SanitizeContextPathFilter set contextPath: " + contextPath);
@@ -74,11 +71,11 @@ public class SanitizeContextPathFilter implements Filter {
     }
 
     /**
-     * Getter for allowed context paths. Cannot be package-private because of an issue where the package is scoped per classloader.
+     * Getter for whitelistedContextPaths. Cannot be package-private because of an issue where the package is scoped per classloader.
      *
-     * @return the allowed context path(s)
+     * @return the whitelisted context path(s)
      */
-    protected String getAllowedContextPaths() {
-        return allowedContextPaths;
+    protected String getWhitelistedContextPaths() {
+        return whitelistedContextPaths;
     }
 }

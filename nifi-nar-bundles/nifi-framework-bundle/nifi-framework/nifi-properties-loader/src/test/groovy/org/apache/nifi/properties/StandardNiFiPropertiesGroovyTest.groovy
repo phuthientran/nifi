@@ -728,7 +728,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
 
         // Act
-        String normalizedContextPath = props.getAllowedContextPaths()
+        String normalizedContextPath = props.getWhitelistedContextPaths()
         logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
 
         // Assert
@@ -744,7 +744,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw context path property [${leadingSlash}]")
 
         // Act
-        String normalizedContextPath = props.getAllowedContextPaths()
+        String normalizedContextPath = props.getWhitelistedContextPaths()
         logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
 
         // Assert
@@ -764,7 +764,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
 
         // Act
-        String normalizedContextPath = props.getAllowedContextPaths()
+        String normalizedContextPath = props.getWhitelistedContextPaths()
         logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
 
         // Assert
@@ -784,7 +784,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw context path property [${leadingSlash}]")
 
         // Act
-        def normalizedContextPaths = props.getAllowedContextPathsAsList()
+        def normalizedContextPaths = props.getWhitelistedContextPathsAsList()
         logger.info("Read from NiFiProperties instance: ${normalizedContextPaths}")
 
         // Assert
@@ -805,7 +805,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
 
         // Act
-        def normalizedContextPaths = props.getAllowedContextPathsAsList()
+        def normalizedContextPaths = props.getWhitelistedContextPathsAsList()
         logger.info("Read from NiFiProperties instance: ${normalizedContextPaths}")
 
         // Assert
@@ -822,7 +822,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw context path property [${empty}]")
 
         // Act
-        String normalizedContextPath = props.getAllowedContextPaths()
+        String normalizedContextPath = props.getWhitelistedContextPaths()
         logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
 
         // Assert
@@ -838,7 +838,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw proxy host property [${extraSpaceHostname}]")
 
         // Act
-        String normalizedHostname = props.getAllowedHosts()
+        String normalizedHostname = props.getWhitelistedHosts()
         logger.info("Read from NiFiProperties instance: ${normalizedHostname}")
 
         // Assert
@@ -855,7 +855,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw proxy host property [${hostname}]")
 
         // Act
-        String normalizedHostname = props.getAllowedHosts()
+        String normalizedHostname = props.getWhitelistedHosts()
         logger.info("Read from NiFiProperties instance: ${normalizedHostname}")
 
         // Assert
@@ -876,7 +876,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw proxy host property [${combinedHosts}]")
 
         // Act
-        String normalizedHostname = props.getAllowedHosts()
+        String normalizedHostname = props.getWhitelistedHosts()
         logger.info("Read from NiFiProperties instance: ${normalizedHostname}")
 
         // Assert
@@ -897,7 +897,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw proxy host property [${normalHostname}]")
 
         // Act
-        def listOfHosts = props.getAllowedHostsAsList()
+        def listOfHosts = props.getWhitelistedHostsAsList()
         logger.info("Read from NiFiProperties instance: ${listOfHosts}")
 
         // Assert
@@ -919,7 +919,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw proxy host property [${combinedHosts}]")
 
         // Act
-        def listOfHosts = props.getAllowedHostsAsList()
+        def listOfHosts = props.getWhitelistedHostsAsList()
         logger.info("Read from NiFiProperties instance: ${listOfHosts}")
 
         // Assert
@@ -936,7 +936,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw proxy host property [${empty}]")
 
         // Act
-        String normalizedHost = props.getAllowedHosts()
+        String normalizedHost = props.getWhitelistedHosts()
         logger.info("Read from NiFiProperties instance: ${normalizedHost}")
 
         // Assert
@@ -952,7 +952,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Created a NiFiProperties instance with raw proxy host property [${empty}]")
 
         // Act
-        def hosts = props.getAllowedHostsAsList()
+        def hosts = props.getWhitelistedHostsAsList()
         logger.info("Read from NiFiProperties instance: ${hosts}")
 
         // Assert
