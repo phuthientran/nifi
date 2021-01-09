@@ -33,6 +33,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.cassandra.CassandraSessionProviderService;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -181,11 +182,19 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
     public void onDisabled(){
         if (cassandraSession != null) {
             cassandraSession.close();
-            cassandraSession = null;
         }
         if (cluster != null) {
             cluster.close();
-            cluster = null;
+        }
+    }
+
+    @OnStopped
+    public void onStopped() {
+        if (cassandraSession != null) {
+            cassandraSession.close();
+        }
+        if (cluster != null) {
+            cluster.close();
         }
     }
 
