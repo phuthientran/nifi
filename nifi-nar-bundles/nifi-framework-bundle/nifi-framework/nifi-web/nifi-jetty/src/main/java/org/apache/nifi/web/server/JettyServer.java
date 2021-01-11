@@ -77,6 +77,7 @@ import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlets.DoSFilter;
+import org.eclipse.jetty.util.Scanner;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -649,6 +650,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                         XSSProtectionFilter.class,
                         XContentTypeOptionsFilter.class));
 
+        final String ALL_PATHS = getWebContextRoot() + "/*";
         if(props.isHTTPSConfigured()) {
             filters.add(StrictTransportSecurityFilter.class);
         }
@@ -673,11 +675,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         String contextRoot = props.getWebContextRoot();
         if (contextRoot != null && contextRoot.length() > 0) {
             // Remove the ending slash if present
-<<<<<<< Upstream, based on origin/master
-            contextRoot = contextRoot.replaceAll("(.+)/$", "$1");
-=======
             contextRoot = contextRoot.replaceAll("(.*)/$", "$1");
->>>>>>> c104db7 Fix conflicts
         }
         return (contextRoot != null ? contextRoot : "");
     }
