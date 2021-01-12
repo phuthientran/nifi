@@ -14,22 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.atlas.provenance;
 
-import org.apache.nifi.atlas.resolver.NamespaceResolver;
-import org.apache.nifi.controller.status.ConnectionStatus;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.lineage.ComputeLineageResult;
+package org.apache.nifi.components.validation;
 
-import java.util.List;
+import org.apache.nifi.components.ValidationResult;
 
-public interface AnalysisContext {
-    String getNiFiNamespace();
-    NamespaceResolver getNamespaceResolver();
-    List<ConnectionStatus> findConnectionTo(String componentId);
-    List<ConnectionStatus> findConnectionFrom(String componentId);
-    ComputeLineageResult queryLineage(long eventId);
-    ComputeLineageResult findParents(long eventId);
-    ProvenanceEventRecord getProvenanceEvent(long eventId);
-    String getAwsS3ModelVersion();
+public class EnablingServiceValidationResult extends ValidationResult {
+    private static final String EXPLANATION = "Controller Service [%s] Identifier [%s] state is Enabling";
+
+    public EnablingServiceValidationResult(final String subject, final String serviceId) {
+        super(new Builder()
+                .input(serviceId)
+                .subject(subject)
+                .valid(false)
+                .explanation(String.format(EXPLANATION, subject, serviceId)));
+    }
 }
