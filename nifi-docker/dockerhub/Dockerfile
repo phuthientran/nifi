@@ -22,7 +22,11 @@ LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
+<<<<<<< HEAD
 ARG NIFI_VERSION=1.12.2
+=======
+ARG NIFI_VERSION=1.11.4
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 ARG BASE_URL=https://archive.apache.org/dist
 ARG MIRROR_BASE_URL=${MIRROR_BASE_URL:-${BASE_URL}}
 ARG NIFI_BINARY_PATH=${NIFI_BINARY_PATH:-/nifi/${NIFI_VERSION}/nifi-${NIFI_VERSION}-bin.zip}

@@ -35,6 +35,10 @@ public class ShellRunner {
 
     static String SHELL = "sh";
     static String OPTS = "-c";
+<<<<<<< HEAD
+=======
+    static Integer TIMEOUT = 60;
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
     private final int timeoutSeconds;
     private final ExecutorService executor;
@@ -65,6 +69,7 @@ public class ShellRunner {
 
         final Process proc = builder.start();
 
+<<<<<<< HEAD
         final List<String> lines = new ArrayList<>();
         executor.submit(() -> {
             try {
@@ -88,19 +93,38 @@ public class ShellRunner {
             }
         });
 
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         boolean completed;
         try {
+<<<<<<< HEAD
             completed = proc.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+=======
+            completed = proc.waitFor(TIMEOUT, TimeUnit.SECONDS);
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         } catch (InterruptedException irexc) {
             throw new IOException(irexc.getMessage(), irexc.getCause());
         }
 
         if (!completed) {
+<<<<<<< HEAD
             logger.debug("Process did not complete in allotted time, attempting to forcibly destroy process...");
             try {
                 proc.destroyForcibly();
             } catch (Exception e) {
                 logger.debug("Process failed to destroy: " + e.getMessage(), e);
+=======
+            throw new IllegalStateException("Shell command '" + command + "' did not complete during the allotted time period");
+        }
+
+        if (proc.exitValue() != 0) {
+            try (final Reader stderr = new InputStreamReader(proc.getErrorStream());
+                 final BufferedReader reader = new BufferedReader(stderr)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    logger.warn(line.trim());
+                }
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             }
             throw new IllegalStateException("Shell command '" + command + "' did not complete during the allotted time period");
         }

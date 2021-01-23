@@ -13,7 +13,11 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-toolkit</artifactId>
+<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
+=======
+        <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -34,7 +38,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-toolkit-tls</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -44,7 +52,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-client-dto</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
@@ -55,7 +67,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-security</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
@@ -70,7 +86,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
@@ -81,7 +101,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties-loader</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
@@ -92,7 +116,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>

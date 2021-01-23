@@ -69,7 +69,6 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
@@ -85,10 +84,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -105,7 +102,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
+<<<<<<< HEAD
 import java.util.zip.GZIPInputStream;
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
@@ -473,6 +473,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     logger.trace("InitialFlow = " + new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
                 }
 
+<<<<<<< HEAD
                 // Sync the initial flow into the flow controller so that if the flow came from disk we loaded the
                 // whole flow into the flow controller and applied any bundle upgrades
                 writeLock.lock();
@@ -481,6 +482,16 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 } finally {
                     writeLock.unlock();
                 }
+=======
+            // Sync the initial flow into the flow controller so that if the flow came from disk we loaded the
+            // whole flow into the flow controller and applied any bundle upgrades
+            writeLock.lock();
+            try {
+                loadFromBytes(initialFlow, true);
+            } finally {
+                writeLock.unlock();
+            }
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
                 proposedFlow = createDataFlowFromController();
                 if (logger.isTraceEnabled()) {

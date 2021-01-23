@@ -18,7 +18,10 @@ package org.apache.nifi.persistence;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+<<<<<<< HEAD
 
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;

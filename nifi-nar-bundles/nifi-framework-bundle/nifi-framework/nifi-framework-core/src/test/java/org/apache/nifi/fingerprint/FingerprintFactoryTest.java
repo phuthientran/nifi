@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+<<<<<<< HEAD
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
@@ -36,6 +37,13 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
+=======
+import java.util.Collections;
+import java.util.Optional;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -55,9 +63,12 @@ import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
+<<<<<<< HEAD
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.AfterClass;
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -295,6 +306,7 @@ public class FingerprintFactoryTest {
         final String hashedProxyPassword = "[MASKED] (" + Base64.getEncoder().encodeToString(hashedBytes) + ")";
 
         // Assert fingerprints with expected one.
+        final String hashedProxyPassword = new Argon2SecureHasher().hashHex(proxyPassword);
         final String expected = "id" +
                 "NO_VALUE" +
                 "http://node1:8080/nifi, http://node2:8080/nifi" +

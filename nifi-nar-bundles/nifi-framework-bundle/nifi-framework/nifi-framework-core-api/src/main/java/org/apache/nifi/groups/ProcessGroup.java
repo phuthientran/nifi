@@ -1098,6 +1098,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param updatedParameters a Map of parameter name to the ParameterUpdate that describes how the Parameter was updated
      */
     void onParameterContextUpdated(Map<String, ParameterUpdate> updatedParameters);
+<<<<<<< HEAD
 
     /**
      * @return the FlowFileGate that must be used for obtaining a claim before an InputPort is allowed to bring data into a ProcessGroup
@@ -1157,4 +1158,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return the DataValve associated with this Process Group
      */
     DataValve getDataValve();
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 }

@@ -258,6 +258,17 @@ public class ReplaceText extends AbstractProcessor {
     public void setup(ProcessContext context) {
         final String replacementStrategy = context.getProperty(REPLACEMENT_STRATEGY).getValue();
         final String evaluateMode = context.getProperty(EVALUATION_MODE).getValue();
+<<<<<<< HEAD
+=======
+        final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+
+        final byte[] buffer;
+        if (replacementStrategy.equalsIgnoreCase(regexReplaceValue) || replacementStrategy.equalsIgnoreCase(literalReplaceValue)) {
+            buffer = new byte[maxBufferSize];
+        } else {
+            buffer = null;
+        }
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
         switch (replacementStrategy) {
             case prependValue:

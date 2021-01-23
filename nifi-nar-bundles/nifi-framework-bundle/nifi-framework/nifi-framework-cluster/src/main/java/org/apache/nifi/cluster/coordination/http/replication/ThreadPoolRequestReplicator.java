@@ -158,7 +158,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         maintenanceExecutor.shutdown();
     }
 
-
     @Override
     public AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers) {
         return replicate(NiFiUserUtils.getNiFiUser(), method, uri, entity, headers);
@@ -798,7 +797,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                          nodeId.getApiPort(), uriPath, exampleUri.getQuery());
     }
 
-    private URI createURI(final String scheme, final String nodeApiAddress, final int nodeApiPort, final String path, final String query) {
+    private URI createURI(final String scheme, final String nodeApiAddress, final int nodeApiPort, 
+                          final String path, final String query) {
         try {
             return new URI(scheme, null, nodeApiAddress, nodeApiPort, path, query, null);
         } catch (final URISyntaxException e) {

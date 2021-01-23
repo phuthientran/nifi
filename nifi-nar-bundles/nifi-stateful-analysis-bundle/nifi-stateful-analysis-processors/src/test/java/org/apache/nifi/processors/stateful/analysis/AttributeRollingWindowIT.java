@@ -23,6 +23,7 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+<<<<<<< HEAD
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -194,6 +195,178 @@ public class AttributeRollingWindowIT {
     }
 
     @Ignore("this test is too unstable in terms of timing on different size/types of testing envs")
+=======
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.REL_FAILED_SET_STATE;
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_COUNT_KEY;
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_MEAN_KEY;
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VALUE_KEY;
+import static org.junit.Assume.assumeFalse;
+
+public class AttributeRollingWindowIT {
+
+    @Test
+    public void testFailureDueToBadAttribute() throws InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
+
+        runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
+        runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "3 sec");
+
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "bad");
+
+
+        runner.enqueue("1".getBytes(), attributes);
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(AttributeRollingWindow.REL_FAILURE);
+    }
+
+    @Test
+    public void testStateFailures() throws InterruptedException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
+        MockStateManager mockStateManager = runner.getStateManager();
+        final AttributeRollingWindow processor = (AttributeRollingWindow) runner.getProcessor();
+        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+
+        runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
+        runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "3 sec");
+
+        processor.onScheduled(runner.getProcessContext());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+
+        mockStateManager.setFailOnStateGet(Scope.LOCAL, true);
+
+        runner.enqueue(new byte[0],attributes);
+        processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
+
+        runner.assertQueueNotEmpty();
+
+        mockStateManager.setFailOnStateGet(Scope.LOCAL, false);
+        mockStateManager.setFailOnStateSet(Scope.LOCAL, true);
+
+        processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
+
+        runner.assertQueueEmpty();
+
+        runner.assertAllFlowFilesTransferred(AttributeRollingWindow.REL_FAILED_SET_STATE, 1);
+        MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(REL_FAILED_SET_STATE).get(0);
+        mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_VALUE_KEY);
+        mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_COUNT_KEY);
+        mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_MEAN_KEY);
+    }
+
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
+    @Test
+    public void testBasic() throws InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
+
+        runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
+        runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "300 ms");
+
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+
+
+        runner.enqueue("1".getBytes(), attributes);
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(AttributeRollingWindow.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).get(0);
+        runner.clearTransferState();
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, "1.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, "1");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, "1.0");
+
+        runner.enqueue("2".getBytes(), attributes);
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(AttributeRollingWindow.REL_SUCCESS, 1);
+         flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).get(0);
+        runner.clearTransferState();
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, "2.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, "2");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, "1.0");
+
+        Thread.sleep(500L);
+
+        runner.enqueue("2".getBytes(), attributes);
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(AttributeRollingWindow.REL_SUCCESS, 1);
+        flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).get(0);
+        runner.clearTransferState();
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, "1.0");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, "1");
+        flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, "1.0");
+
+    }
+
+
+    @Test
+    public void testVerifyCount() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
+        final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
+
+        runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
+        runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "10 sec");
+
+        MockFlowFile flowFile;
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+        for(int i = 1; i<61; i++){
+            runner.enqueue(String.valueOf(i).getBytes(), attributes);
+
+            runner.run();
+
+            flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).get(0);
+            runner.clearTransferState();
+            Double value = (double) i;
+            Double mean = value / i;
+
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, String.valueOf(value));
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, String.valueOf(i));
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
+            Thread.sleep(10L);
+        }
+
+
+
+        runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
+        runner.setProperty(AttributeRollingWindow.SUB_WINDOW_LENGTH, "500 ms");
+        runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "10 sec");
+
+        for(int i = 1; i<10; i++){
+            runner.enqueue(String.valueOf(i).getBytes(), attributes);
+
+            runner.run();
+
+            flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).get(0);
+            runner.clearTransferState();
+            Double value = (double) i;
+            Double mean = value / i;
+
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, String.valueOf(Double.valueOf(i)));
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, String.valueOf(i));
+            flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
+
+            Thread.sleep(10L);
+        }
+
+    }
+
+
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     @Test
     public void testMicroBatching() throws InterruptedException {
         assumeFalse(isWindowsEnvironment());

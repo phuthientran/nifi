@@ -17,7 +17,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework-bundle</artifactId>
+<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
+=======
+        <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <artifactId>nifi-framework-nar</artifactId>
     <packaging>nar</packaging>
@@ -46,11 +50,16 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-prioritizers</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
         </dependency>
         <!-- Override scope to compile since framework NAR won't get this from a parent NAR -->
@@ -58,6 +67,9 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils-api</artifactId>
             <scope>compile</scope>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
 
         <!-- mark these nifi artifacts as provided since it is included in the lib -->

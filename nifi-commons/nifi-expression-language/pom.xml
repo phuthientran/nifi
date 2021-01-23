@@ -17,11 +17,16 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
+<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
+=======
+        <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <artifactId>nifi-expression-language</artifactId>
     <packaging>jar</packaging>
     <build>
+    	<pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.antlr</groupId>
@@ -51,6 +56,7 @@
                 </configuration>
             </plugin>
         </plugins>
+    	</pluginManagement>
     </build>
     <dependencies>
         <dependency>
@@ -61,17 +67,29 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-parameter</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>

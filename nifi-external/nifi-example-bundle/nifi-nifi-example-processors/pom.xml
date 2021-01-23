@@ -19,7 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-example-bundle</artifactId>
+<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
+=======
+        <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
 
     <artifactId>nifi-nifi-example-processors</artifactId>
@@ -29,17 +33,29 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>

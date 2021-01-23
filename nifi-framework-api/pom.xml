@@ -18,7 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
+<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
+=======
+        <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <artifactId>nifi-framework-api</artifactId>
     <packaging>jar</packaging>
@@ -27,6 +31,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -34,6 +39,9 @@
             <artifactId>nifi-security-utils</artifactId>
             <version>1.12.2-SNAPSHOT</version>
             <scope>provided</scope>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
     </dependencies>
 </project>

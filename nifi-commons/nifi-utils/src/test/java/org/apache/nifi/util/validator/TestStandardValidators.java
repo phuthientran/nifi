@@ -183,6 +183,7 @@ public class TestStandardValidators {
         vr = val.validate("List", " ", validationContext);
         assertFalse(vr.isValid());
         assertEquals(1, mockValidator.getValidateCallCount());
+<<<<<<< HEAD
 
         // An empty list is the same as null, "" or " "
         vr = val.validate("List", ",", validationContext);
@@ -202,6 +203,8 @@ public class TestStandardValidators {
         vr = val.validate("List", ",foo", validationContext);
         assertFalse(vr.isValid());
         assertEquals(1, mockValidator.getValidateCallCount());
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
         vr = val.validate("List", "1", validationContext);
         assertTrue(vr.isValid());
@@ -307,6 +310,7 @@ public class TestStandardValidators {
         vr = val.validate("List", " , false,  true,\n", validationContext);
         assertTrue(vr.isValid());
         assertEquals(2, mockValidator.getValidateCallCount());
+<<<<<<< HEAD
     }
 
 
@@ -458,6 +462,8 @@ public class TestStandardValidators {
         vr = val.validate("List", " , false,  true,\n", validationContext);
         assertTrue(vr.isValid());
         assertEquals(2, mockValidator.getValidateCallCount());
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     }
 
     @Test

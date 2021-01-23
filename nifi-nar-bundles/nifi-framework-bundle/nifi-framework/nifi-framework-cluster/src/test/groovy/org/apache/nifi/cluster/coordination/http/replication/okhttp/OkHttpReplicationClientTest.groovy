@@ -212,6 +212,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     }
 
     @Test
+<<<<<<< HEAD
     void testShouldFailIfKeyPasswordAndKeystorePasswordAreBlank() {
         // Arrange
         Map propsMap = [
@@ -249,6 +250,45 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
                 (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
                 (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
                 (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+=======
+    void testShouldFailIfKeyPasswordIsBlankAndKeystorePassword() {
+        // Arrange
+        Map propsMap = [
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "",
+                (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
+                (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
+        ]
+        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(propsMap))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
+
+        // Assert
+        assert !client.isTLSConfigured()
+    }
+
+    @Test
+    void testShouldDetermineIfTLSConfigured() {
+        // Arrange
+        Map propsMap = [(NiFiProperties.WEB_HTTPS_HOST): "localhost",
+                        (NiFiProperties.WEB_HTTPS_PORT): "51552",]
+
+        Map tlsPropsMap = [
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
+                (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         ] + propsMap
 
 

@@ -60,7 +60,10 @@ import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
 import java.io.InputStream;
+<<<<<<< HEAD
 import java.math.BigDecimal;
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -483,8 +486,12 @@ public class TestPutKudu {
             new RecordField("name", RecordFieldType.STRING.getDataType()),
             new RecordField("age", RecordFieldType.SHORT.getDataType()),
             new RecordField("updated_at", RecordFieldType.TIMESTAMP.getDataType()),
+<<<<<<< HEAD
             new RecordField("score", RecordFieldType.LONG.getDataType()),
             new RecordField("airport_code", RecordFieldType.STRING.getDataType())));
+=======
+            new RecordField("score", RecordFieldType.LONG.getDataType())));
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
         Map<String, Object> values = new HashMap<>();
         PartialRow row = kuduSchema.newPartialRow();

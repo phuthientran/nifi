@@ -30,7 +30,11 @@ import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+<<<<<<< HEAD
 import org.apache.nifi.services.FlowService;
+=======
+import org.xml.sax.InputSource;
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
 /**
  * Interface to define service methods for FlowController configuration.

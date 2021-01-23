@@ -18,7 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
+<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
+=======
+        <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
@@ -400,8 +404,9 @@
     <profiles>
         <profile>
             <id>development-mode</id>
+            <!-- test -->
             <activation>
-                <activeByDefault>false</activeByDefault>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <build>
                 <plugins>
@@ -435,7 +440,7 @@
         <profile>
             <id>minify-and-compress</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
                 <canvas.filter>canvas-min.properties</canvas.filter>

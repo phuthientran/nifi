@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.fingerprint
 
+<<<<<<< HEAD
 import org.apache.nifi.encrypt.StringEncryptor
 import org.apache.nifi.nar.ExtensionManager
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager
@@ -99,5 +100,75 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
         def maskedValue = (fingerprint =~ /\[MASKED\] \([\w\/\+=]+\)/)
         assert maskedValue
         logger.info("Masked value: ${maskedValue[0]}")
+=======
+
+import org.apache.nifi.encrypt.StringEncryptor
+import org.apache.nifi.nar.ExtensionManager
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.junit.After
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+import java.security.Security
+
+@RunWith(JUnit4.class)
+class FingerprintFactoryGroovyTest extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(FingerprintFactoryGroovyTest.class)
+
+    private static StringEncryptor mockEncryptor = [
+            encrypt: { String plaintext -> plaintext.reverse() },
+            decrypt: { String cipherText -> cipherText.reverse() }] as StringEncryptor
+    private static ExtensionManager extensionManager = new StandardExtensionDiscoveringManager()
+
+    @BeforeClass
+    static void setUpOnce() throws Exception {
+        Security.addProvider(new BouncyCastleProvider())
+
+        logger.metaClass.methodMissing = { String name, args ->
+            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+        }
+    }
+
+    @Before
+    void setUp() throws Exception {
+
+    }
+
+    @After
+    void tearDown() throws Exception {
+
+    }
+
+    /**
+     * The flow fingerprint should not disclose sensitive property values.
+     */
+    @Test
+    void testCreateFingerprintShouldNotDiscloseSensitivePropertyValues() {
+        // Arrange
+
+        // Create flow
+        String initialFlowXML = new File("src/test/resources/nifi/fingerprint/initial.xml").text
+        logger.info("Read initial flow: ${initialFlowXML[0..<100]}...")
+
+        // Create the FingerprintFactory with collaborators
+        FingerprintFactory fingerprintFactory = new FingerprintFactory(mockEncryptor, extensionManager)
+
+        // Act
+
+        // Create the fingerprint from the flow
+        String fingerprint = fingerprintFactory.createFingerprint(initialFlowXML.bytes)
+        logger.info("Generated flow fingerprint: ${fingerprint}")
+
+        // Assert
+
+        // Assert the fingerprint does not contain the password
+        assert !(fingerprint =~ "originalPlaintextPassword")
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     }
 }

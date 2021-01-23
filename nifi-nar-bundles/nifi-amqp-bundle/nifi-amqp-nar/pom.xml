@@ -18,10 +18,18 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-amqp-bundle</artifactId>
+<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
+=======
+        <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <artifactId>nifi-amqp-nar</artifactId>
+<<<<<<< HEAD
     <version>1.12.2-SNAPSHOT</version>
+=======
+    <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
@@ -31,7 +39,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
+<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
+=======
+            <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <type>nar</type>
         </dependency>
         <dependency>

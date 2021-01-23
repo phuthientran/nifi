@@ -33,7 +33,10 @@ import org.apache.activemq.transport.tcp.TcpTransportFactory;
 import org.apache.activemq.wireformat.WireFormat;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
 import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProperties;
+<<<<<<< HEAD
 import org.apache.nifi.jms.processors.helpers.ConnectionFactoryInvocationHandler;
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -388,6 +391,7 @@ public class PublishJMSIT {
         }
     }
 
+<<<<<<< HEAD
     /**
      * <p>
      * This test validates the optimal resources usage. To process one message is expected to create only one connection, one session and one message producer.
@@ -513,6 +517,8 @@ public class PublishJMSIT {
         }
     }
 
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     @Test
     public void whenExceptionIsRaisedDuringConnectionFactoryInitializationTheProcessorShouldBeYielded() throws Exception {
         TestRunner runner = TestRunners.newTestRunner(PublishJMS.class);

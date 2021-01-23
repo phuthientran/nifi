@@ -17,6 +17,10 @@
 package org.apache.nifi.stateless.core;
 
 import org.apache.nifi.events.EventReporter;
+<<<<<<< HEAD
+=======
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Relationship;

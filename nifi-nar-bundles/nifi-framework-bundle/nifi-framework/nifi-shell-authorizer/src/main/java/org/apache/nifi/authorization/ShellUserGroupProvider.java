@@ -59,15 +59,21 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     public static final String EXCLUDE_USER_PROPERTY = "Exclude Users";
     public static final String EXCLUDE_GROUP_PROPERTY = "Exclude Groups";
     public static final String LEGACY_IDENTIFIER_MODE = "Legacy Identifier Mode";
+<<<<<<< HEAD
     public static final String COMMAND_TIMEOUT_PROPERTY = "Command Timeout";
 
     private static final String DEFAULT_COMMAND_TIMEOUT = "60 seconds";
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
     private long fixedDelay;
     private Pattern excludeUsers;
     private Pattern excludeGroups;
     private boolean legacyIdentifierMode;
+<<<<<<< HEAD
     private int timeoutSeconds;
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
     // Our scheduler has one thread for users, one for groups:
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -261,7 +267,11 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         // Our next init step is to run the system check from that command set to determine if the other commands
         // will work on this host or not.
         try {
+<<<<<<< HEAD
             shellRunner.runShell(commands.getSystemCheck());
+=======
+            ShellRunner.runShell(commands.getSystemCheck());
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         } catch (final Exception e) {
             logger.error("initialize exception: " + e + " system check command: " + commands.getSystemCheck());
             throw new AuthorizerCreationException(SYS_CHECK_ERROR, e);
@@ -587,7 +597,11 @@ public class ShellUserGroupProvider implements UserGroupProvider {
 
                 try {
                     String groupMembersCommand = selectedShellCommands.getGroupMembers(groupName);
+<<<<<<< HEAD
                     List<String> memberLines = shellRunner.runShell(groupMembersCommand);
+=======
+                    List<String> memberLines = ShellRunner.runShell(groupMembersCommand);
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
                     // Use the first line only, and log if the line count isn't exactly one:
                     if (!memberLines.isEmpty()) {
                         String memberLine = memberLines.get(0);

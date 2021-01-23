@@ -43,7 +43,10 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+<<<<<<< HEAD
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;

@@ -19,11 +19,19 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
+<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
+=======
+        <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
 
     <artifactId>nifi-hive-bundle</artifactId>
+<<<<<<< HEAD
     <version>1.12.2-SNAPSHOT</version>
+=======
+    <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     <packaging>pom</packaging>
 
     <modules>
@@ -51,10 +59,17 @@
     <properties>
         <hive11.version>1.1.1</hive11.version>
         <hive11.hadoop.version>2.6.2</hive11.hadoop.version>
+<<<<<<< HEAD
         <hive12.version>1.2.1</hive12.version>
         <hive12.hadoop.version>2.6.2</hive12.hadoop.version>
         <hive3.version>3.1.2</hive3.version>
         <hive.version>${hive3.version}</hive.version>
+=======
+        <hive.version>1.2.1</hive.version>
+        <hive.hadoop.version>2.6.2</hive.hadoop.version>
+        <hive3.version>3.1.2</hive3.version>
+        <hive3.hadoop.version>3.1.0</hive3.hadoop.version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </properties>
 
     <build>

@@ -250,6 +250,7 @@ public class TestQueryRecord {
     }
 
     @Test
+<<<<<<< HEAD
     public void testCollectionFunctionsWithoutCastFailure() throws InitializationException {
         final Record record = createHierarchicalArrayRecord();
         final Record record2 = createHierarchicalArrayRecord();
@@ -374,6 +375,8 @@ public class TestQueryRecord {
     }
 
     @Test
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     public void testCollectionFunctionsWithWhereClause() throws InitializationException {
         final Record sample = createTaggedRecord("1", "a", "b", "c");
 

@@ -797,6 +797,7 @@ public class QueryRecord extends AbstractProcessor {
                 return null;
             }
 
+<<<<<<< HEAD
             try {
                 if (record instanceof Record) {
                     return eval((Record) record, recordPath, transform);
@@ -809,6 +810,16 @@ public class QueryRecord extends AbstractProcessor {
                 }
             } catch (IllegalArgumentException e) {
                 throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against " + record, e);
+=======
+            if (record instanceof Record) {
+                return eval((Record) record, recordPath, transform);
+            } else if (record instanceof Record[]) {
+                return eval((Record[]) record, recordPath, transform);
+            } else if (record instanceof Iterable) {
+                return eval((Iterable<Record>) record, recordPath, transform);
+            } else if (record instanceof Map) {
+                return eval((Map<?, ?>) record, recordPath, transform);
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             }
 
             throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");

@@ -18,7 +18,11 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
+<<<<<<< HEAD
     <version>1.12.2-SNAPSHOT</version>
+=======
+    <version>1.11.4</version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -74,7 +78,11 @@
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=nifi.git</url>
+<<<<<<< HEAD
         <tag>nifi-1.12.0-RC1</tag>
+=======
+        <tag>nifi-1.11.4-RC1</tag>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </scm>
     <issueManagement>
         <system>JIRA</system>
@@ -88,11 +96,21 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.30</org.slf4j.version>
+<<<<<<< HEAD
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.26.v20200117</jetty.version>
+=======
+        <ranger.version>2.0.0</ranger.version>
+        <jetty.version>9.4.19.v20190610</jetty.version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         <jackson.version>2.9.10</jackson.version>
+<<<<<<< HEAD
         <jackson-databind.version>2.9.10.5</jackson-databind.version>
         <nifi.registry.version>0.7.0</nifi.registry.version>
+=======
+        <jackson-databind.version>2.9.10.3</jackson-databind.version>
+        <nifi.registry.version>0.5.0</nifi.registry.version>
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         <nifi.groovy.version>2.5.4</nifi.groovy.version>
         <surefire.version>2.22.2</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need

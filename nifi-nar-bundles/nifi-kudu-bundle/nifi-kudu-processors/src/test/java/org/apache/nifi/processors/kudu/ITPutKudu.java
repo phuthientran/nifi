@@ -104,9 +104,12 @@ public class ITPutKudu {
         List<ColumnSchema> columns = new ArrayList<>();
         columns.add(new ColumnSchema.ColumnSchemaBuilder("id", Type.INT32).key(true).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("stringval", Type.STRING).build());
+<<<<<<< HEAD
         columns.add(new ColumnSchema.ColumnSchemaBuilder("varcharval", Type.VARCHAR).typeAttributes(
                 new ColumnTypeAttributes.ColumnTypeAttributesBuilder().length(256).build()
         ).build());
+=======
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         columns.add(new ColumnSchema.ColumnSchemaBuilder("num32val", Type.INT32).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("timestampval", Type.UNIXTIME_MICROS).build());
         Schema schema = new Schema(columns);
@@ -127,7 +130,11 @@ public class ITPutKudu {
         readerFactory.addSchemaField("floatVal", RecordFieldType.FLOAT);
 
         for (int i = 0; i < numOfRecord; i++) {
+<<<<<<< HEAD
             readerFactory.addRecord(i, "val_" + i, "varchar_val_" + i, 1000 + i, NOW, 100.88 + i, 100.88 + i);
+=======
+            readerFactory.addRecord(i, "val_" + i, 1000 + i, NOW, 100.88 + i, 100.88 + i);
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         }
 
         testRunner.addControllerService("mock-reader-factory", readerFactory);
@@ -193,7 +200,11 @@ public class ITPutKudu {
         KuduTable kuduTable = client.openTable(DEFAULT_TABLE_NAME);
 
         // Verify the extra field was added.
+<<<<<<< HEAD
         Assert.assertEquals(7, kuduTable.getSchema().getColumnCount());
+=======
+        Assert.assertEquals(6, kuduTable.getSchema().getColumnCount());
+>>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         Assert.assertTrue(kuduTable.getSchema().hasColumn("doubleval"));
         Assert.assertTrue(kuduTable.getSchema().hasColumn("floatval"));
 
