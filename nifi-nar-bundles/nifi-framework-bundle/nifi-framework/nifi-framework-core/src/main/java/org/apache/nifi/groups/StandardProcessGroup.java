@@ -3981,12 +3981,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         // We cannot add or update connections yet, though. That must be done at the end, as it's possible that the component that is the source/destination of the connection
         // has not yet been added.
         final Map<String, Connection> connectionsByVersionedId = group.getConnections().stream()
-<<<<<<< HEAD
             .collect(Collectors.toMap(component -> component.getVersionedComponentId().orElse(
                 NiFiRegistryFlowMapper.generateVersionedComponentId(component.getIdentifier())), Function.identity()));
-=======
-                .collect(Collectors.toMap(component -> component.getVersionedComponentId().orElse(component.getIdentifier()), Function.identity()));
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         final Set<String> connectionsRemoved = new HashSet<>(connectionsByVersionedId.keySet());
 
         for (final VersionedConnection proposedConnection : proposed.getConnections()) {

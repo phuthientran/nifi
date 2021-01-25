@@ -18,11 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
-=======
-        <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-api</artifactId>
@@ -37,7 +33,6 @@
                 <directory>src/main/resources</directory>
             </resource>
         </resources>
-        <pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -124,33 +119,12 @@
                                 <resource>
                                     <directory>src/main/resources/images</directory>
                                 </resource>
-                            </resources>
-                        </configuration>
+                            </resources>              
+                        </configuration>            
                     </execution>
-                    <execution>
-                            <id>redeploy-classes</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>copy-resources</goal>
-                            </goals>
-                            <configuration>
-                                <overwrite>false</overwrite>
-                                <!-- 
-                                <outputDirectory>c:/dev/nifi-1.11.4/lib/nifi-web-api.war/WEB-INF/classes</outputDirectory> 
-                                <outputDirectory>C:/dev/projects/zingest-nifi/dist/zingest-2.6.11\nifi-1.11.4/lib/nifi-web-api.war/WEB-INF/classes</outputDirectory>
-                                -->
-                               <outputDirectory>c:/dev/nifi-1.11.4/lib/nifi-web-api.war/WEB-INF/classes</outputDirectory> 
-                               <resources>
-                                    <resource>
-                                        <directory>${project.build.directory}/classes</directory>
-                                    </resource>
-                                </resources>
-                            </configuration>
-                        </execution>
                 </executions>
-                </plugin>
+            </plugin>
         </plugins>
-    </pluginManagement>
     </build>
     <profiles>
         <profile>
@@ -228,11 +202,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-security</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

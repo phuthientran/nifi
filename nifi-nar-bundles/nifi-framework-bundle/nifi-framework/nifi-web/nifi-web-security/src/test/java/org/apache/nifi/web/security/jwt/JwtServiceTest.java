@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.web.security.jwt;
 
-<<<<<<< HEAD
 import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX;
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -33,16 +30,11 @@ import io.jsonwebtoken.JwtException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-<<<<<<< HEAD
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-=======
-import java.util.LinkedHashMap;
-import java.util.Map;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Base64;
