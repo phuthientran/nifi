@@ -739,7 +739,6 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void onParameterContextUpdated(final Map<String, ParameterUpdate> updatedParameters) {
-<<<<<<< HEAD
     }
 
     @Override
@@ -796,8 +795,6 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public DataValve getDataValve() {
         return null;
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     }
 
     @Override

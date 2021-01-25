@@ -18,18 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
-=======
-        <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <artifactId>nifi-amqp-bundle</artifactId>
-<<<<<<< HEAD
     <version>1.12.2-SNAPSHOT</version>
-=======
-    <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     <packaging>pom</packaging>
     <description>A bundle of processors that publish to and consume messages from AMQP.</description>
     <modules>
@@ -41,11 +33,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-amqp-processors</artifactId>
-<<<<<<< HEAD
                 <version>1.12.2-SNAPSHOT</version>
-=======
-                <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             </dependency>
         </dependencies>
     </dependencyManagement>

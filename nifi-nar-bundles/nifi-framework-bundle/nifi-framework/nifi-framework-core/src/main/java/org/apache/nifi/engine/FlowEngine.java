@@ -43,17 +43,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     public FlowEngine(int corePoolSize, final String threadNamePrefix) {
         this(corePoolSize, threadNamePrefix, false);
     }
-    
-    /**
-     * Creates a new instance of FlowEngine
-     * @param corePoolSize the maximum number of threads available to tasks running in the engine.
-     * @param threadNamePrefix for naming the thread
-     * @param threadPriority The priority of the thread
-     */
-    public FlowEngine(int corePoolSize, final String threadNamePrefix, final int threadPriority) {
-        this(corePoolSize, threadNamePrefix, false, threadPriority);
-    }
-    
+
     /**
      * Creates a new instance of FlowEngine
      *
@@ -62,18 +52,6 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
      * @param daemon if true, the thread pool will be populated with daemon threads, otherwise the threads will not be marked as daemon.
      */
     public FlowEngine(int corePoolSize, final String threadNamePrefix, final boolean daemon) {
-        this(corePoolSize, threadNamePrefix, daemon, Thread.NORM_PRIORITY);
-    }
-
-    /**
-     * Creates a new instance of FlowEngine
-     *
-     * @param corePoolSize the maximum number of threads available to tasks running in the engine.
-     * @param threadNamePrefix for thread naming
-     * @param daemon if true, the thread pool will be populated with daemon threads, otherwise the threads will not be marked as daemon.
-     * @param threadPriority The priority of the thread
-     */
-    public FlowEngine(int corePoolSize, final String threadNamePrefix, final boolean daemon, final int threadPriority) {
         super(corePoolSize);
 
         final AtomicInteger threadIndex = new AtomicInteger(0);
@@ -84,7 +62,6 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
                 final Thread t = defaultThreadFactory.newThread(r);
                 if (daemon) {
                     t.setDaemon(true);
-                    t.setPriority(threadPriority);
                 }
                 t.setName(threadNamePrefix + " Thread-" + threadIndex.incrementAndGet());
                 return t;

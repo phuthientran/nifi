@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.server;
 
-<<<<<<< HEAD
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import java.io.BufferedReader;
@@ -121,112 +120,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-=======
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.stream.Collectors;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.Filter;
-import javax.servlet.ServletContext;
-
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.NiFiServer;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.controller.UninheritableFlowException;
-import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.controller.serialization.FlowSynchronizationException;
-import org.apache.nifi.diagnostics.DiagnosticsDump;
-import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
-import org.apache.nifi.diagnostics.DiagnosticsFactory;
-import org.apache.nifi.diagnostics.ThreadDumpTask;
-import org.apache.nifi.documentation.DocGenerator;
-import org.apache.nifi.lifecycle.LifeCycleStartException;
-import org.apache.nifi.nar.ExtensionDiscoveringManager;
-import org.apache.nifi.nar.ExtensionManagerHolder;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.nar.ExtensionUiLoader;
-import org.apache.nifi.nar.NarAutoLoader;
-import org.apache.nifi.nar.NarClassLoadersHolder;
-import org.apache.nifi.nar.NarLoader;
-import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.apache.nifi.nar.StandardNarLoader;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.services.FlowService;
-import org.apache.nifi.ui.extension.UiExtension;
-import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ContentAccess;
-import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
-import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
-import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
-import org.apache.nifi.web.security.headers.XSSProtectionFilter;
-import org.eclipse.jetty.annotations.AnnotationConfiguration;
-import org.eclipse.jetty.deploy.App;
-import org.eclipse.jetty.deploy.DeploymentManager;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.Scanner;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.Configuration;
-import org.eclipse.jetty.webapp.JettyWebXmlConfiguration;
-import org.eclipse.jetty.webapp.WebAppClassLoader;
-import org.eclipse.jetty.webapp.WebAppContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
 /**
  * Encapsulates the Jetty instance.
@@ -268,7 +161,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private Collection<WebAppContext> componentUiExtensionWebContexts;
 
     private DeploymentManager deploymentManager;
-    private Scanner webApiScanner;
 
     public JettyServer(final NiFiProperties props, final Set<Bundle> bundles) {
         final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
@@ -340,32 +232,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
-
-                final String devWebApiWarPath = "./lib/nifi-web-api.war";
-                File explodedWar = new File(devWebApiWarPath);
-                if (explodedWar.exists()) {
-                    webApiWar = explodedWar;
-
-                    // Scanner for detecting file changes to restart server
-                    webApiScanner = new Scanner();
-                    webApiScanner.setScanDirs(Arrays.asList(new File(devWebApiWarPath)));
-                    webApiScanner.setScanInterval(1);
-                    webApiScanner.setRecursive(true);
-                    webApiScanner.setReportDirs(true);
-                    webApiScanner.addListener(new Scanner.DiscreteListener() {
-                        @Override
-                        public void fileChanged(String filename) throws Exception {
-                            JettyServer.this.stop();
-                            JettyServer.this.start();
-                        }
-                        @Override
-                        public void fileAdded(String filename) throws Exception {
-                        }
-                        @Override
-                        public void fileRemoved(String filename) throws Exception {
-                        }
-                    });
-                }
             } else if (war.getName().toLowerCase().startsWith("nifi-web-error")) {
                 webErrorWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-docs")) {
@@ -374,11 +240,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 webContentViewerWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web")) {
                 webUiWar = war;
-                //ZTI-TODO: For development only, allow for changing JS files on the fly
-                File explodedWar = new File("./lib/nifi-web-ui.war");
-                if (explodedWar.exists()) {
-                    webUiWar = explodedWar;
-                }
             } else {
                 otherWars.put(war, warBundle);
             }
@@ -438,11 +299,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // load the web error app
         final WebAppContext webErrorContext = loadWar(webErrorWar, getWebContextRoot() + "/", frameworkClassLoader);
-<<<<<<< HEAD
         webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
-=======
-        webErrorContext.getInitParams().put("whitelistedContextPaths", props.getWhitelistedContextPaths());
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         webAppContextHandlers.addHandler(webErrorContext);
 
         // deploy the web apps
@@ -745,7 +602,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // add HTTP security headers to all responses
         final String ALL_PATHS = getWebContextRoot() + "/*";
-<<<<<<< HEAD
         ArrayList<Class<? extends Filter>> filters =
                 new ArrayList<>(Arrays.asList(
                         XFrameOptionsFilter.class,
@@ -753,9 +609,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                         XSSProtectionFilter.class,
                         XContentTypeOptionsFilter.class));
 
-=======
-        ArrayList<Class<? extends Filter>> filters = new ArrayList<>(Arrays.asList(XFrameOptionsFilter.class, ContentSecurityPolicyFilter.class, XSSProtectionFilter.class));
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         if(props.isHTTPSConfigured()) {
             filters.add(StrictTransportSecurityFilter.class);
         }
@@ -776,19 +629,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private String getWebContextRoot() {
         // Place all webapps under the same root context to allow NiFi UI to continue working
         // for the hardcoded contexts, e.g. /nifi, on different nodes in a cluster setup
-<<<<<<< HEAD
         // to work with different 
         String contextRoot = props.getWebContextRoot();
         if (contextRoot != null && contextRoot.length() > 0) {
             // Remove the ending slash if present
             contextRoot = contextRoot.replaceAll("(.+)/$", "$1");
-=======
-        //  to work with different
-        String contextRoot = props.getWebContextRoot();
-        if (contextRoot != null && contextRoot.length() > 0) {
-            // Remove the ending slash if present
-            contextRoot = contextRoot.replaceAll("(.*)/$", "$1");
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         }
         return (contextRoot != null ? contextRoot : "");
     }
@@ -831,7 +676,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             docsContext.addServlet(components, "/components/*");
             docsContext.addServlet(restApi, "/rest-api/*");
 
-            
             docsContext.addServlet(defaultHolder, "/");
 
             logger.info("Loading documents web app with context path set to " + docsContext.getContextPath());
@@ -1218,10 +1062,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // start the server
             server.start();
 
-            if (webApiScanner != null) {
-                webApiScanner.start();
-            }
-
             // ensure everything started successfully
             for (Handler handler : server.getChildHandlers()) {
                 // see if the handler is a web app
@@ -1440,9 +1280,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     public void stop() {
         try {
             server.stop();
-            if (webApiScanner != null) {
-                webApiScanner.stop();
-            }
         } catch (Exception ex) {
             logger.warn("Failed to stop web server", ex);
         }

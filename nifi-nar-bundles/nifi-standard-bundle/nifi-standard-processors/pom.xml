@@ -14,11 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
-=======
-        <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -35,38 +31,22 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-syslog-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -79,11 +59,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flowfile-packager</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -148,11 +124,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>com.hierynomus</groupId>
@@ -193,20 +165,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-socket-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-load-distribution-service-api</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
@@ -235,20 +199,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -272,21 +228,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -308,41 +256,25 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-prioritizers</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-services</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -387,11 +319,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>
@@ -424,20 +352,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-database-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-web-test-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -449,11 +369,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-database-test-utils</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <scope>test</scope>
         </dependency>
         <dependency>

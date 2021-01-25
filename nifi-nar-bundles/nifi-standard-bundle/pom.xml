@@ -18,11 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
-=======
-        <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
     <packaging>pom</packaging>
@@ -46,49 +42,29 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-<<<<<<< HEAD
                 <version>1.12.2-SNAPSHOT</version>
-=======
-                <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-<<<<<<< HEAD
                 <version>1.12.2-SNAPSHOT</version>
-=======
-                <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-<<<<<<< HEAD
                 <version>1.12.2-SNAPSHOT</version>
-=======
-                <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-content-viewer</artifactId>
                 <type>war</type>
-<<<<<<< HEAD
                 <version>1.12.2-SNAPSHOT</version>
-=======
-                <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jolt-transform-json-ui</artifactId>
                 <type>war</type>
-<<<<<<< HEAD
                 <version>1.12.2-SNAPSHOT</version>
-=======
-                <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             </dependency>
             <dependency>
                 <groupId>com.bazaarvoice.jolt</groupId>

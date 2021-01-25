@@ -53,22 +53,15 @@ import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
-<<<<<<< HEAD
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
-=======
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-<<<<<<< HEAD
 import java.util.ArrayList;
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -355,12 +348,9 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                             break;
                         case DECIMAL:
                             row.addDecimal(colIdx, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
-<<<<<<< HEAD
                             break;
                         case VARCHAR:
                             row.addVarchar(colIdx, DataTypeUtils.toString(value, recordFieldName));
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
                             break;
                         default:
                             throw new IllegalStateException(String.format("unknown column type %s", colType));
@@ -373,7 +363,6 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     /**
      * Converts a NiFi DataType to it's equivalent Kudu Type.
      */
-<<<<<<< HEAD
     private Type toKuduType(DataType nifiType) {
         switch (nifiType.getFieldType()) {
             case BOOLEAN:
@@ -430,32 +419,6 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 .build());
 
         return alterTable;
-=======
-    protected Type toKuduType(DataType nifiType) {
-        switch (nifiType.getFieldType()) {
-            case BOOLEAN:
-                return Type.BOOL;
-            case BYTE:
-                return Type.INT8;
-            case SHORT:
-                return Type.INT16;
-            case INT:
-                return Type.INT32;
-            case LONG:
-                return Type.INT64;
-            case FLOAT:
-                return Type.FLOAT;
-            case DOUBLE:
-                return Type.DOUBLE;
-            case TIMESTAMP:
-                return Type.UNIXTIME_MICROS;
-            case CHAR:
-            case STRING:
-                return Type.STRING;
-            default:
-                throw new IllegalArgumentException(String.format("unsupported type %s", nifiType));
-        }
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     }
 
     private int getColumnIndex(Schema columns, String colName) {

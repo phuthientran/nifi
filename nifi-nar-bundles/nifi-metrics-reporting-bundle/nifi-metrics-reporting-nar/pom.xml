@@ -17,11 +17,7 @@
     <parent>
         <artifactId>nifi-metrics-reporting-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-<<<<<<< HEAD
         <version>1.12.2-SNAPSHOT</version>
-=======
-        <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     </parent>
     <packaging>nar</packaging>
     <modelVersion>4.0.0</modelVersion>
@@ -32,20 +28,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporting-task</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporter-service-api-nar</artifactId>
-<<<<<<< HEAD
             <version>1.12.2-SNAPSHOT</version>
-=======
-            <version>1.11.4</version>
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             <type>nar</type>
         </dependency>
     </dependencies>

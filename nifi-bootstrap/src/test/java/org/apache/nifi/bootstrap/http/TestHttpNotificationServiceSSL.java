@@ -16,37 +16,16 @@
  */
 package org.apache.nifi.bootstrap.http;
 
-<<<<<<< HEAD
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-=======
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-import okhttp3.mockwebserver.MockWebServer;
-import org.apache.nifi.bootstrap.NotificationServiceManager;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.internal.util.io.IOUtil;
-import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
-import ch.qos.logback.classic.Logger;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
-<<<<<<< HEAD
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-=======
-import javax.net.ssl.SSLContext;
-import javax.xml.parsers.ParserConfigurationException;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-<<<<<<< HEAD
 import java.util.List;
 import javax.net.ssl.SSLContext;
 import javax.xml.parsers.ParserConfigurationException;
@@ -63,23 +42,9 @@ import org.junit.Test;
 import org.mockito.internal.util.io.IOUtil;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-=======
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.List;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
-<<<<<<< HEAD
 public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceCommon {
-=======
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
-<<<<<<< HEAD
     static final String CONFIGURATION_FILE_TEXT = "\n" +
             "<services>\n" +
             "         <service>\n" +
@@ -95,60 +60,8 @@ import static org.junit.Assert.assertTrue;
             "            <property name=\"Keystore Password\">passwordpassword</property>\n" +
             "            <property name=\"testProp\">${literal('testing')}</property>\n" +
             "         </service>\n" +
-=======
-public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceCommon {
-
-    static final String CONFIGURATION_FILE_TEXT = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Key Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Password\">passwordpassword</property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
             "</services>";
 
-    static final String CONFIGURATION_FILE_TEXT_NO_KEYSTORE_PASSWORD = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Key Password\">passwordpassword</property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
-            "</services>";
-
-    static final String CONFIGURATION_FILE_TEXT_NO_KEY_PASSWORD = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Keystore Password\">passwordpassword</property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
-            "</services>";
-
-<<<<<<< HEAD
     static final String CONFIGURATION_FILE_TEXT_NO_KEYSTORE_PASSWORD = "\n" +
             "<services>\n" +
             "         <service>\n" +
@@ -163,26 +76,8 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
             "            <property name=\"Key Password\">passwordpassword</property>\n" +
             "            <property name=\"testProp\">${literal('testing')}</property>\n" +
             "         </service>\n" +
-=======
-    static final String CONFIGURATION_FILE_TEXT_BLANK_KEY_PASSWORD = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Keystore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Key Password\"></property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
             "</services>";
 
-<<<<<<< HEAD
     static final String CONFIGURATION_FILE_TEXT_NO_KEY_PASSWORD = "\n" +
             "<services>\n" +
             "         <service>\n" +
@@ -235,27 +130,6 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
     @Before
     public void startServer() throws IOException, TlsException {
-=======
-    static final String CONFIGURATION_FILE_TEXT_BLANK_KEYSTORE_PASSWORD = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Keystore Password\"></property>\n"+
-            "            <property name=\"Key Password\">passwordpassword</property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
-            "</services>";
-
-    @Before
-    public void startServer() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         tempConfigFilePath = "./target/TestHttpNotificationService-config.xml";
 
         Files.deleteIfExists(Paths.get(tempConfigFilePath));
@@ -293,7 +167,6 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
         List<ILoggingEvent> logsList = listAppender.list;
         boolean notificationServiceFailed = false;
-<<<<<<< HEAD
         for (ILoggingEvent logMessage : logsList) {
             if (logMessage.getFormattedMessage().contains("is not valid for the following reasons")) {
                 notificationServiceFailed = true;
@@ -371,85 +244,6 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
         boolean notificationServiceFailed = false;
         for (ILoggingEvent logMessage : logsList) {
             if (logMessage.getFormattedMessage().contains("'Key Password' validated against '' is invalid because Key Password cannot be empty")) {
-=======
-        for(ILoggingEvent logMessage : logsList) {
-            if(logMessage.getFormattedMessage().contains("is not valid for the following reasons")) {
-                    notificationServiceFailed = true;
-            }
-        }
-
-        assertFalse(notificationServiceFailed);
-    }
-
-    @Test
-    public void testStartNotificationSucceedsNoKeyPasswd() throws ParserConfigurationException, SAXException, IOException {
-        Logger notificationServiceLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
-        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
-        listAppender.start();
-        notificationServiceLogger.addAppender(listAppender);
-
-        String configFileOutput = CONFIGURATION_FILE_TEXT_NO_KEY_PASSWORD.replace("${test.server}", String.valueOf(mockWebServer.url("/")));
-        IOUtil.writeText(configFileOutput, new File(tempConfigFilePath));
-
-        NotificationServiceManager notificationServiceManager = new NotificationServiceManager();
-        notificationServiceManager.setMaxNotificationAttempts(1);
-        notificationServiceManager.loadNotificationServices(new File(tempConfigFilePath));
-
-        List<ILoggingEvent> logsList = listAppender.list;
-        boolean notificationServiceFailed = false;
-        for(ILoggingEvent logMessage : logsList) {
-            if(logMessage.getFormattedMessage().contains("is not valid for the following reasons")) {
-                notificationServiceFailed = true;
-            }
-        }
-
-        assertFalse(notificationServiceFailed);
-    }
-
-    @Test
-    public void testStartNotificationFailsBlankKeystorePasswdCorrectKeypasswd() throws ParserConfigurationException, SAXException, IOException {
-        Logger notificationServiceLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
-        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
-        listAppender.start();
-        notificationServiceLogger.addAppender(listAppender);
-
-        String configFileOutput = CONFIGURATION_FILE_TEXT_BLANK_KEYSTORE_PASSWORD.replace("${test.server}", String.valueOf(mockWebServer.url("/")));
-        IOUtil.writeText(configFileOutput, new File(tempConfigFilePath));
-
-        NotificationServiceManager notificationServiceManager = new NotificationServiceManager();
-        notificationServiceManager.setMaxNotificationAttempts(1);
-        notificationServiceManager.loadNotificationServices(new File(tempConfigFilePath));
-
-        List<ILoggingEvent> logsList = listAppender.list;
-        boolean notificationServiceFailed = false;
-        for(ILoggingEvent logMessage : logsList) {
-            if(logMessage.getFormattedMessage().contains("'Keystore Password' validated against '' is invalid because Keystore Password cannot be empty")) {
-                notificationServiceFailed = true;
-            }
-        }
-
-        assertTrue(notificationServiceFailed);
-    }
-
-    @Test
-    public void testStartNotificationFailsCorrectKeystorePasswdBlankKeypasswd() throws ParserConfigurationException, SAXException, IOException {
-        Logger notificationServiceLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
-        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
-        listAppender.start();
-        notificationServiceLogger.addAppender(listAppender);
-
-        String configFileOutput = CONFIGURATION_FILE_TEXT_BLANK_KEY_PASSWORD.replace("${test.server}", String.valueOf(mockWebServer.url("/")));
-        IOUtil.writeText(configFileOutput, new File(tempConfigFilePath));
-
-        NotificationServiceManager notificationServiceManager = new NotificationServiceManager();
-        notificationServiceManager.setMaxNotificationAttempts(1);
-        notificationServiceManager.loadNotificationServices(new File(tempConfigFilePath));
-
-        List<ILoggingEvent> logsList = listAppender.list;
-        boolean notificationServiceFailed = false;
-        for(ILoggingEvent logMessage : logsList) {
-            if(logMessage.getFormattedMessage().contains("'Key Password' validated against '' is invalid because Key Password cannot be empty")) {
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
                 notificationServiceFailed = true;
             }
         }

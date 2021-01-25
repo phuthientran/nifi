@@ -306,7 +306,6 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     }
 
     private Set<Relationship> doInPlaceReplacement(Record record, FlowFile flowFile, ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
-<<<<<<< HEAD
         final Map<String, RecordPath> recordPaths = flowFileContext.getKey();
         final Map<String, Object> lookupCoordinates = new HashMap<>(recordPaths.size());
 
@@ -331,33 +330,6 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
 
                 lookupCoordinates.clear();
                 lookupCoordinates.put(coordinateKey, coordinateValue);
-=======
-
-        final String lookupKey = (String) context.getProperty(LOOKUP_SERVICE).asControllerService(LookupService.class).getRequiredKeys().iterator().next();
-
-        final Map<String, RecordPath> recordPaths = flowFileContext.getKey();
-        final Map<String, Object> lookupCoordinates = new HashMap<>(recordPaths.size());
-
-        for (final Map.Entry<String, RecordPath> entry : recordPaths.entrySet()) {
-            final String coordinateKey = entry.getKey();
-            final RecordPath recordPath = entry.getValue();
-
-            final RecordPathResult pathResult = recordPath.evaluate(record);
-            final List<FieldValue> lookupFieldValues = pathResult.getSelectedFields()
-                .filter(fieldVal -> fieldVal.getValue() != null)
-                .collect(Collectors.toList());
-
-            if (lookupFieldValues.isEmpty()) {
-                final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
-                getLogger().debug("RecordPath for property '{}' did not match any fields in a record for {}; routing record to {}", new Object[] {coordinateKey, flowFile, rels});
-                return rels;
-            }
-
-            for (FieldValue fieldValue : lookupFieldValues) {
-                final Object coordinateValue = (fieldValue.getValue() instanceof Number || fieldValue.getValue() instanceof Boolean)
-                        ? fieldValue.getValue() : DataTypeUtils.toString(fieldValue.getValue(), (String) null);
-                lookupCoordinates.put(lookupKey, coordinateValue);
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
                 final Optional<?> lookupValueOption;
                 try {

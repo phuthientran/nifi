@@ -27,7 +27,6 @@ import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
-import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
@@ -994,11 +993,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldWriteKeyToBootstrapConf() {
         // Arrange
-<<<<<<< HEAD
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
-=======
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 
@@ -1032,11 +1027,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testWriteKeyToBootstrapConfShouldHandleReadFailure() {
         // Arrange
-<<<<<<< HEAD
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
-=======
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 
@@ -1066,11 +1057,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testWriteKeyToBootstrapConfShouldHandleWriteFailure() {
         // Arrange
-<<<<<<< HEAD
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
-=======
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 

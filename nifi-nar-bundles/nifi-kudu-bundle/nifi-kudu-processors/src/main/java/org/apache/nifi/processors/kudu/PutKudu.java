@@ -18,16 +18,8 @@
 package org.apache.nifi.processors.kudu;
 
 import org.apache.kudu.Schema;
-<<<<<<< HEAD
-=======
-import org.apache.kudu.client.AlterTableOptions;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
-<<<<<<< HEAD
-=======
-import org.apache.kudu.client.KuduTable;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
@@ -267,11 +259,7 @@ public class PutKudu extends AbstractKuduProcessor {
         batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         ffbatch   = context.getProperty(FLOWFILE_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue().toUpperCase());
-<<<<<<< HEAD
         createKerberosUserAndOrKuduClient(context);
-=======
-        createKuduClient(context);
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     }
 
     @Override
@@ -336,15 +324,8 @@ public class PutKudu extends AbstractKuduProcessor {
                         // we created by a concurrent thread or application attempting to handle schema drift.
                         for (RecordField field : missing) {
                             try {
-<<<<<<< HEAD
                                 final String columnName = lowercaseFields ? field.getFieldName().toLowerCase() : field.getFieldName();
                                 kuduClient.alterTable(tableName, getAddNullableColumnStatement(columnName, field.getDataType()));
-=======
-                                String columnName = lowercaseFields ? field.getFieldName().toLowerCase() : field.getFieldName();
-                                AlterTableOptions alter = new AlterTableOptions();
-                                alter.addNullableColumn(columnName, toKuduType(field.getDataType()));
-                                kuduClient.alterTable(tableName, alter);
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
                             } catch (KuduException e) {
                                 // Ignore the exception if the column already exists due to concurrent
                                 // threads or applications attempting to handle schema drift.

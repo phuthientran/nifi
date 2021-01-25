@@ -1235,7 +1235,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                 nodeId.getSocketAddress(), nodeId.getSocketPort(),
                 nodeId.getLoadBalanceAddress(), nodeId.getLoadBalancePort(),
                 nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(),
-                nodeId.getSiteToSiteHttpApiPort(), nodeId.isSiteToSiteSecure(), 
+                nodeId.getSiteToSiteHttpApiPort(), nodeId.isSiteToSiteSecure(),
                 nodeId.getWebContextRoot(), nodeIdentities);
     }
 

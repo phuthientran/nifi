@@ -18,7 +18,6 @@ package org.apache.nifi.fingerprint;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-<<<<<<< HEAD
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -35,21 +34,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
-=======
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.stream.Stream;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -61,14 +45,9 @@ import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
-<<<<<<< HEAD
 import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
 import org.apache.nifi.security.xml.XmlUtils;
-=======
-import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
-import org.apache.nifi.security.util.crypto.SecureHasher;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
@@ -561,7 +540,6 @@ public class FingerprintFactory {
      * trouble inheriting a flow, so the sensitive value should not be disclosed through the
      * log. However, the equality or difference of the sensitive value can influence in the
      * inheritability of the flow, so it cannot be ignored completely.
-<<<<<<< HEAD
      * <p>
      * The specific derivation process is unimportant as long as it is a salted,
      * cryptographically-secure hash function with an iteration cost sufficient for password
@@ -599,23 +577,6 @@ public class FingerprintFactory {
                 logger.error("Encountered an error loading NiFi properties while fingerprinting flow: ", e);
             }
         }
-=======
-     *
-     * The specific derivation process is unimportant as long as it is a salted,
-     * cryptographically-secure hash function with an iteration cost sufficient for password
-     * storage in other applications.
-     *
-     * @param encryptedPropertyValue the encrypted property value
-     * @return a deterministic string value which represents this input but is safe to print in a log
-     */
-    private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
-        // TODO: Use DI/IoC to inject this implementation in the constructor of the FingerprintFactory
-        // There is little initialization cost, so it doesn't make sense to cache this as a field
-        SecureHasher secureHasher = new Argon2SecureHasher();
-
-        // TODO: Extend {@link StringEncryptor} with secure hashing capability and inject?
-        return secureHasher.hashHex(decrypt(encryptedPropertyValue));
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     }
 
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {

@@ -174,7 +174,6 @@
             }
 
             // initialize the properties
-<<<<<<< HEAD
 
             $('#read-only-processor-properties').propertytable(Object.assign({
                     supportsGoTo: config.supportsGoTo,
@@ -182,15 +181,6 @@
                 },
                 //incase of summary window, nfCanvasUtils module wont be loaded
                 nfCanvasUtils && {
-=======
-            
-            $('#read-only-processor-properties').propertytable(Object.assign({
-                    supportsGoTo: config.supportsGoTo,
-                    readOnly: true
-                }, 
-                //incase of summary window, nfCanvasUtils module wont be loaded
-                nfCanvasUtils && { 
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
                     getParameterContext: function (groupId) {
                         // processors being configured must be in the current group
                         return nfCanvasUtils.getParameterContext();

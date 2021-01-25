@@ -17,9 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.okhttp;
 
-import static org.apache.nifi.security.util.SslContextFactory.ClientAuth.WANT;
-import static org.apache.nifi.security.util.SslContextFactory.createTrustSslContextWithTrustManagers;
-
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonInclude.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,15 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-<<<<<<< HEAD
-=======
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.Arrays;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,13 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
-<<<<<<< HEAD
-=======
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
@@ -81,8 +62,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StreamUtils;
-
-// Using static imports because of the name conflict:
 
 public class OkHttpReplicationClient implements HttpReplicationClient {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClient.class);
@@ -336,7 +315,6 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         final int connectionPoolSize = properties.getClusterNodeMaxConcurrentRequests();
         okHttpClientBuilder.connectionPool(new ConnectionPool(connectionPoolSize, 5, TimeUnit.MINUTES));
 
-<<<<<<< HEAD
         // Apply the TLS configuration, if present
         try {
             TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
@@ -345,47 +323,8 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
             // Legacy expectations around this client are that it does not throw an exception on invalid TLS configuration
             // TODO: The only current use of this class is ThreadPoolRequestReplicatorFactoryBean#getObject() which should be evaluated to see if that can change
             tlsConfigured = false;
-=======
-        final Tuple<SSLSocketFactory, X509TrustManager> tuple = createSslSocketFactory(properties);
-        if (tuple != null) {
-            okHttpClientBuilder.sslSocketFactory(tuple.getKey(), tuple.getValue());
-            tlsConfigured = true;
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         }
 
         return okHttpClientBuilder.build();
     }
-<<<<<<< HEAD
-=======
-
-    private Tuple<SSLSocketFactory, X509TrustManager> createSslSocketFactory(final NiFiProperties properties) {
-        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
-
-        if (sslContext == null) {
-            return null;
-        }
-
-        try {
-            Tuple<SSLContext, TrustManager[]> sslContextTuple = createTrustSslContextWithTrustManagers(
-                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE),
-                    StringUtils.isNotBlank(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)) ? properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray() : null,
-                    StringUtils.isNotBlank(properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD)) ? properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray() : null,
-                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE),
-                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
-                    StringUtils.isNotBlank(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)) ? properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray() : null,
-                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
-                    WANT,
-                    sslContext.getProtocol());
-            List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
-                    .filter(trustManager -> trustManager instanceof X509TrustManager)
-                    .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
-            return new Tuple<>(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
-        } catch(UnrecoverableKeyException e) {
-            logger.error("Key password may be incorrect or not set. Check your keystore passwords." + e.getMessage());
-            return null;
-        } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
-            return null;
-        }
-    }
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 }

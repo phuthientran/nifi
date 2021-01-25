@@ -773,7 +773,6 @@ public class NiFiClientUtil {
         final FlowFileEntity flowFileEntity = nifiClient.getConnectionClient().getFlowFile(connectionId, uuid, nodeId);
         flowFileEntity.getFlowFile().setClusterNodeId(nodeId);
         return flowFileEntity;
-<<<<<<< HEAD
     }
 
     public InputStream getFlowFileContent(final String connectionId, final int flowFileIndex) throws NiFiClientException, IOException {
@@ -791,8 +790,6 @@ public class NiFiClientUtil {
         flowFileEntity.getFlowFile().setClusterNodeId(nodeId);
 
         return nifiClient.getConnectionClient().getFlowFileContent(connectionId, uuid, nodeId);
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     }
 
     public VariableRegistryUpdateRequestEntity updateVariableRegistry(final ProcessGroupEntity processGroup, final Map<String, String> variables) throws NiFiClientException, IOException {
