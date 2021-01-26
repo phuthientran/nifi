@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-<<<<<<< HEAD
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -32,8 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.ssl.StandardSSLContextService;
@@ -280,7 +277,6 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         assertNull(regexAttributesToSendField.get(processor));
 
     }
-<<<<<<< HEAD
 
     @Test
     public void testEmptyGzipHttpReponse() throws Exception {
@@ -453,45 +449,4 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         }
     }
 
-=======
-    @Test
-    public void testEmptyGzipHttpReponse() throws Exception {
-        addHandler(new EmptyGzipResponseHandler());
-
-        runner.setProperty(InvokeHTTP.PROP_URL, url);
-        runner.setProperty(InvokeHTTP.IGNORE_RESPONSE_CONTENT, "true");
-
-        createFlowFiles(runner);
-
-        runner.run();
-
-        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
-        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
-        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        runner.assertPenalizeCount(0);
-
-        //expected empty content in response FlowFile
-        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
-        bundle.assertContentEquals(new byte[0]);
-        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
-        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
-        bundle.assertAttributeEquals("Foo", "Bar");
-        bundle.assertAttributeEquals("Content-Type", "text/plain");
-    }
-
-    public static class EmptyGzipResponseHandler extends AbstractHandler {
-
-        @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-            baseRequest.setHandled(true);
-            response.setStatus(200);
-            response.setContentLength(0);
-            response.setContentType("text/plain");
-            response.setHeader("Content-Encoding", "gzip");
-        }
-
-    }
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 }

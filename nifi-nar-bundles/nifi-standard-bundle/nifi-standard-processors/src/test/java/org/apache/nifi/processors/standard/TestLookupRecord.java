@@ -445,7 +445,6 @@ public class TestLookupRecord {
     @Test
     public void testLookupArray() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
-<<<<<<< HEAD
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -489,51 +488,6 @@ public class TestLookupRecord {
     public void testLookupArrayKeyNotInLRS() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
-=======
-        final MapLookup lookupService = new MapLookup();
-
-        final JsonTreeReader jsonReader = new JsonTreeReader();
-        runner.addControllerService("reader", jsonReader);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
-
-        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
-        runner.addControllerService("writer", jsonWriter);
-        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
-
-        runner.addControllerService("reader", jsonReader);
-        runner.enableControllerService(jsonReader);
-        runner.addControllerService("writer", jsonWriter);
-        runner.enableControllerService(jsonWriter);
-        runner.addControllerService("lookup", lookupService);
-        runner.enableControllerService(lookupService);
-
-        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
-        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
-        runner.setProperty(LookupRecord.RECORD_READER, "reader");
-        runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
-        runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
-        runner.setProperty("lookupLanguage", "/locales[*]/language");
-        runner.setProperty("lookupRegion", "/locales[*]/region");
-        runner.setProperty("lookupFoo", "/foo/foo");
-
-        lookupService.addValue("FR", "France");
-        lookupService.addValue("CA", "Canada");
-        lookupService.addValue("fr", "French");
-        lookupService.addValue("key", "value");
-
-        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input.json").toPath());
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
-        out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output.json").toPath());
-    }
-
-    @Test
-    public void testLookupArrayKeyNotInLRS() throws InitializationException, IOException {
-        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
-        final MapLookup lookupService = new MapLookup();
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);

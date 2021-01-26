@@ -107,7 +107,6 @@ public class TestListFile {
     };
 
     @BeforeClass
-<<<<<<< HEAD
     public static void setupClass() throws Exception {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
 
@@ -115,10 +114,6 @@ public class TestListFile {
         final File file = Files.createTempFile(Paths.get("target/"), "TestListFile", null).toFile();
         file.setLastModified(325990917351L);
         isMillisecondSupported = file.lastModified() % 1_000 > 0;
-=======
-    public static void setupClass() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
     }
 
     @Before

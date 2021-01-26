@@ -185,10 +185,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(CF_SERVICE);
         _propertyDescriptors.add(DESTINATION);
         _propertyDescriptors.add(DESTINATION_TYPE);
-<<<<<<< HEAD
         _propertyDescriptors.add(MESSAGE_SELECTOR);
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         _propertyDescriptors.add(USER);
         _propertyDescriptors.add(PASSWORD);
         _propertyDescriptors.add(CLIENT_ID);

@@ -594,7 +594,6 @@ public class TestValidateRecord {
         }
     }
 
-<<<<<<< HEAD
     @Test
     public void testValidationsDetailsAttributeForInvalidRecords()  throws InitializationException, UnsupportedEncodingException, IOException {
         final String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc")), "UTF-8");
@@ -641,6 +640,4 @@ public class TestValidateRecord {
                 + "The following 1 fields had values whose type did not match the schema: [/id]");
     }
 
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 }

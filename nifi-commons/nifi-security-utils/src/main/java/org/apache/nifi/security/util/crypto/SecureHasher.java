@@ -39,7 +39,6 @@ public interface SecureHasher {
     String hashHex(String input);
 
     /**
-<<<<<<< HEAD
      * Returns a String representation of {@code CHF(input)} in hex-encoded format.
      *
      * @param input the input
@@ -84,20 +83,4 @@ public interface SecureHasher {
      * @return the hash
      */
     byte[] hashRaw(byte[] input, byte[] salt);
-=======
-     * Returns a String representation of {@code CHF(input)} in Base 64-encoded format.
-     *
-     * @param input the input
-     * @return the Base 64-encoded hash
-     */
-    String hashBase64(String input);
-
-    /**
-     * Returns a byte[] representation of {@code CHF(input)}.
-     *
-     * @param input the input
-     * @return the hash
-     */
-    byte[] hashRaw(byte[] input);
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 }

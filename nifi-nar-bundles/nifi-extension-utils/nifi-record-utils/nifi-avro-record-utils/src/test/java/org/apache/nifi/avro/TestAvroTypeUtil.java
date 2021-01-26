@@ -720,7 +720,6 @@ public class TestAvroTypeUtil {
         // THEN
         assertEquals(expected, actual);
     }
-<<<<<<< HEAD
 
     @Test
     public void testConvertNifiRecordIntoAvroRecord() throws IOException {
@@ -771,6 +770,4 @@ public class TestAvroTypeUtil {
 
         return Schema.createRecord(avroFields);
     }
-=======
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
 }
