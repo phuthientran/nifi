@@ -1294,7 +1294,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             logger.warn("Failed to stop NAR auto-loader", e);
         }
     }
-    
+
     /**
      * Holds the result of loading WARs for custom UIs.
      */
