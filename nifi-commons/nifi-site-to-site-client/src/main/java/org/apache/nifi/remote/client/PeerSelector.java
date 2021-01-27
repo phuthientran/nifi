@@ -272,7 +272,6 @@ public class PeerSelector {
     /**
      * Allows for external callers to trigger a refresh of the internal peer status cache. Performs the refresh if the cache has expired. If the cache is still valid, skips the refresh.
      */
-<<<<<<< HEAD
     public void refresh() {
         long cacheAgeMs = getCacheAge();
         logger.debug("External refresh triggered. Last refresh was {} ms ago", cacheAgeMs);
@@ -281,104 +280,6 @@ public class PeerSelector {
             refreshPeerStatusCache();
         } else {
             logger.debug("Cache is still valid; skipping refresh");
-=======
-    public PeerStatus getNextPeerStatus(final TransferDirection direction) {
-        List<PeerStatus> peerList = peerStatuses;
-        if (isPeerRefreshNeeded(peerList)) {
-            peerRefreshLock.lock();
-            try {
-                // now that we have the lock, check again that we need to refresh (because another thread
-                // could have been refreshing while we were waiting for the lock).
-                peerList = peerStatuses;
-                if (isPeerRefreshNeeded(peerList)) {
-                    try {
-                        peerList = createPeerStatusList(direction);
-                    } catch (final Exception e) {
-                        final String message = String.format("%s Failed to update list of peers due to %s", this, e.toString());
-                        warn(logger, eventReporter, message);
-                        if (logger.isDebugEnabled()) {
-                            logger.warn("", e);
-                        }
-                    }
-
-                    this.peerStatuses = peerList;
-                    peerRefreshTime = systemTime.currentTimeMillis();
-                }
-            } finally {
-                peerRefreshLock.unlock();
-            }
-        }
-
-        if (peerList == null || peerList.isEmpty()) {
-            return null;
-        }
-
-        PeerStatus peerStatus;
-        for (int i = 0; i < peerList.size(); i++) {
-            final long idx = peerIndex.getAndIncrement();
-            final int listIndex = (int) (idx % peerList.size());
-            peerStatus = peerList.get(listIndex);
-
-            if (isPenalized(peerStatus)) {
-                logger.debug("{} {} is penalized; will not communicate with this peer", this, peerStatus);
-            } else {
-                return peerStatus;
-            }
-        }
-
-        logger.debug("{} All peers appear to be penalized; returning null", this);
-        return null;
-    }
-
-    private List<PeerStatus> createPeerStatusList(final TransferDirection direction) throws IOException {
-        Set<PeerStatus> statuses = getPeerStatuses();
-        if (statuses == null) {
-            refreshPeers();
-            statuses = getPeerStatuses();
-            if (statuses == null) {
-                logger.debug("{} found no peers to connect to", this);
-                return Collections.emptyList();
-            }
-        }
-        return formulateDestinationList(statuses, direction);
-    }
-
-    private Set<PeerStatus> getPeerStatuses() {
-        final PeerStatusCache cache = this.peerStatusCache;
-        if (cache == null || cache.getStatuses() == null || cache.getStatuses().isEmpty()) {
-            return null;
-        }
-
-        if (cache.getTimestamp() + PEER_CACHE_MILLIS < systemTime.currentTimeMillis()) {
-            final Set<PeerStatus> equalizedSet = new HashSet<>(cache.getStatuses().size());
-            for (final PeerStatus status : cache.getStatuses()) {
-                final PeerStatus equalizedStatus = new PeerStatus(status.getPeerDescription(), 1, status.isQueryForPeers());
-                equalizedSet.add(equalizedStatus);
-            }
-
-            return equalizedSet;
-        }
-
-        return cache.getStatuses();
-    }
-
-    public void refreshPeers() {
-        final PeerStatusCache existingCache = peerStatusCache;
-        if (existingCache != null && (existingCache.getTimestamp() + PEER_CACHE_MILLIS > systemTime.currentTimeMillis())) {
-            return;
-        }
-
-        try {
-            final Set<PeerStatus> statuses = fetchRemotePeerStatuses();
-            peerStatusCache = new PeerStatusCache(statuses, System.currentTimeMillis(), peerStatusProvider.getTransportProtocol());
-            persistPeerStatuses();
-            logger.info("{} Successfully refreshed Peer Status; remote instance consists of {} peers", this, statuses.size());
-        } catch (Exception e) {
-            warn(logger, eventReporter, "{} Unable to refresh Remote Group's peers due to {}", this, e.getMessage());
-            if (logger.isDebugEnabled()) {
-                logger.debug("", e);
-            }
->>>>>>> branch 'fix-corrupt-flow.xml.gz-and-add-web-context-root-final-2' of https://github.com/FerrelBurn/nifi.git
         }
     }
 
