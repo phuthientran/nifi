@@ -223,7 +223,6 @@ public class LoadBalancedQueueIT {
 
     @Test(timeout = 20_000)
     public void testNewNodeAdded() throws IOException, InterruptedException {
-        
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, (String)null, null);
         nodeIdentifiers.add(localNodeId);
 

@@ -126,11 +126,11 @@ public class NodeIdentifierDescriptor {
     public void setSiteToSiteSecure(final Boolean siteToSiteSecure) {
         this.siteToSiteSecure = siteToSiteSecure;
     }
-    
+
     public String getWebContextRoot() {
         return webContextRoot;
     }
-    
+
     public void setWebContextRoot(final String webContextRoot) {
         this.webContextRoot = webContextRoot;
     }
@@ -171,10 +171,10 @@ public class NodeIdentifierDescriptor {
     }
 
     public NodeIdentifier toNodeIdentifier() {
-        return new NodeIdentifier(getId(), getApiAddress(), getApiPort(), 
-                getSocketAddress(), getSocketPort(), 
+        return new NodeIdentifier(getId(), getApiAddress(), getApiPort(),
+                getSocketAddress(), getSocketPort(),
                 getLoadBalanceAddress(), getLoadBalancePort(),
-                getSiteToSiteAddress(), getSiteToSitePort(), getSiteToSiteHttpApiPort(), 
+                getSiteToSiteAddress(), getSiteToSitePort(), getSiteToSiteHttpApiPort(),
                 getSiteToSiteSecure(), getWebContextRoot(), getNodeIdentities());
     }
 }
