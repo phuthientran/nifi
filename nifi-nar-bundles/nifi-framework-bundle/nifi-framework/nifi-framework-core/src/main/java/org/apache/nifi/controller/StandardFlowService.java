@@ -69,7 +69,6 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
@@ -81,14 +80,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -105,7 +101,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
 
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
@@ -244,26 +239,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         writeLock.lock();
         try {
             dao.save(controller);
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public void saveFlowChanges(final OutputStream outStream) throws IOException {
-        writeLock.lock();
-        try {
-            dao.save(controller, outStream);
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public void overwriteFlow(final InputStream is) throws IOException {
-        writeLock.lock();
-        try {
-            dao.save(is);
         } finally {
             writeLock.unlock();
         }
@@ -481,7 +456,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 } finally {
                     writeLock.unlock();
                 }
-                
                 proposedFlow = createDataFlowFromController();
                 if (logger.isTraceEnabled()) {
                     logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
@@ -820,7 +794,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         // load the flow
         logger.debug("Loading proposed flow into FlowController");
-        dao.load(controller, actualProposedFlow);
+        dao.load(controller, actualProposedFlow, this);
 
         final ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         if (rootGroup.isEmpty() && !allowEmptyFlow) {
