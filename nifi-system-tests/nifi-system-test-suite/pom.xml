@@ -25,52 +25,54 @@
     <packaging>jar</packaging>
 
     <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <finalName>nifi-lib</finalName>
-                    <attach>false</attach>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make shared resource</id>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <phase>generate-test-resources</phase>
-                        <configuration>
-                            <archiverConfig>
-                                <defaultDirectoryMode>0775</defaultDirectoryMode>
-                                <directoryMode>0775</directoryMode>
-                                <fileMode>0664</fileMode>
-                            </archiverConfig>
-                            <descriptors>
-                                <descriptor>src/test/assembly/dependencies.xml</descriptor>
-                            </descriptors>
-                            <tarLongFileMode>posix</tarLongFileMode>
-                            <formats>
-                                <format>dir</format>
-                            </formats>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-            <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/flows/mismatched-flows/flow1.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/mismatched-flows/flow2.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/missing-connection/with-connection.xml.gz</exclude>
-                        <exclude>src/test/resources/flows/missing-connection/without-connection.xml.gz</exclude>
-                        <exclude>src/test/resources/keystore.jks</exclude>
-                        <exclude>src/test/resources/truststore.jks</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <configuration>
+                        <finalName>nifi-lib</finalName>
+                        <attach>false</attach>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>make shared resource</id>
+                            <goals>
+                                <goal>single</goal>
+                            </goals>
+                            <phase>generate-test-resources</phase>
+                            <configuration>
+                                <archiverConfig>
+                                    <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                    <directoryMode>0775</directoryMode>
+                                    <fileMode>0664</fileMode>
+                                </archiverConfig>
+                                <descriptors>
+                                    <descriptor>src/test/assembly/dependencies.xml</descriptor>
+                                </descriptors>
+                                <tarLongFileMode>posix</tarLongFileMode>
+                                <formats>
+                                    <format>dir</format>
+                                </formats>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                <groupId>org.apache.rat</groupId>
+                    <artifactId>apache-rat-plugin</artifactId>
+                    <configuration>
+                        <excludes combine.children="append">
+                            <exclude>src/test/resources/flows/mismatched-flows/flow1.xml.gz</exclude>
+                            <exclude>src/test/resources/flows/mismatched-flows/flow2.xml.gz</exclude>
+                            <exclude>src/test/resources/flows/missing-connection/with-connection.xml.gz</exclude>
+                            <exclude>src/test/resources/flows/missing-connection/without-connection.xml.gz</exclude>
+                            <exclude>src/test/resources/keystore.jks</exclude>
+                            <exclude>src/test/resources/truststore.jks</exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
 
