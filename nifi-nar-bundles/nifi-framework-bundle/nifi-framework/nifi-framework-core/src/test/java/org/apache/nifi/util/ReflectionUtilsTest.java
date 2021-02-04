@@ -66,7 +66,7 @@ public class ReflectionUtilsTest {
         assertEquals("D", this.invocations.get(0));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = java.lang.reflect.InvocationTargetException.class)
     public void validateFailureWithWrongArgumentType() throws Exception {
         ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new B(), "foo");
     }
